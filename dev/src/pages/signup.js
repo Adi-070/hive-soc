@@ -15,7 +15,7 @@ export default function SignupPage() {
     e.preventDefault();
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard");
+      router.push("/forms");
     } catch (err) {
       setError(err.message);
     }
@@ -24,7 +24,7 @@ export default function SignupPage() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithPopup(auth, provider);
-      router.push("/dashboard");
+      router.push("/forms");
     } catch (err) {
       setError(err.message);
     }

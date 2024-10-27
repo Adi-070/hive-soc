@@ -14,7 +14,7 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithPopup(auth, provider);
-      router.push("/dashboard"); // Redirect to the protected dashboard page
+      router.push("/forms"); // Redirect to the protected dashboard page
     } catch (err) {
       setError(err.message);
     }
@@ -24,7 +24,7 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/dashboard");
+      router.push("/forms");
     } catch (err) {
       setError(err.message);
     }

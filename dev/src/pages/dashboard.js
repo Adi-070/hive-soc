@@ -25,6 +25,7 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     signOut(auth);
+    localStorage.removeItem("userProfile");
     router.push("/login");
   };
   const [profile, setProfile] = useState(null);
