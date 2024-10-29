@@ -1,8 +1,8 @@
-// pages/login.js
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
 import { auth, provider } from "../../lib/firebaseConfig";
 import { useRouter } from "next/router";
+import { supabase } from "../../lib/supabaseClient"; // Import Supabase client
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -11,10 +11,30 @@ export default function LoginPage() {
   const [error, setError] = useState(null);
   const router = useRouter();
 
+  const checkUserProfile = async (userId) => {
+    try {
+      // Fetch user profile from Supabase
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      return !!data; // Return true if profile exists, otherwise false
+    } catch (err) {
+      console.error("Error checking user profile:", err);
+      return false;
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithPopup(auth, provider);
-      router.push("/forms"); // Redirect to the protected dashboard page
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      const profileExists = await checkUserProfile(user.uid);
+      router.push(profileExists ? "/dashboard" : "/forms"); // Redirect accordingly
     } catch (err) {
       setError(err.message);
     }
@@ -23,8 +43,11 @@ export default function LoginPage() {
   const handleEmailPasswordSignIn = async (e) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push("/forms");
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const user = result.user;
+      
+      const profileExists = await checkUserProfile(user.uid);
+      router.push(profileExists ? "/dashboard" : "/forms"); // Redirect accordingly
     } catch (err) {
       setError(err.message);
     }
@@ -33,9 +56,7 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-4 bg-white shadow-lg rounded-lg">
-        <h2 className="text-3xl font-semibold text-center text-gray-800">
-          Login
-        </h2>
+        <h2 className="text-3xl font-semibold text-center text-gray-800">Login</h2>
         <form onSubmit={handleEmailPasswordSignIn} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -85,12 +106,12 @@ export default function LoginPage() {
             {error}
           </p>
         )}
-       <p className="text-sm text-center text-gray-600 mt-4">
-  Don’t have an account?{" "}
-  <Link href="/signup" className="text-blue-500 hover:underline">
-    Sign up
-  </Link>
-</p>
+        <p className="text-sm text-center text-gray-600 mt-4">
+          Don’t have an account?{" "}
+          <Link href="/signup" className="text-blue-500 hover:underline">
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );

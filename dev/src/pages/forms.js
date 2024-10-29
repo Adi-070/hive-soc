@@ -1,6 +1,7 @@
-// pages/form.js
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { supabase } from "../../lib/supabaseClient"; // Import Supabase client
+import { auth } from "../../lib/firebaseConfig"; // Import Firebase auth for user ID
 
 export default function Form() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function Form() {
     city: "",
     interests: "",
   });
+  const [error, setError] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -21,11 +23,49 @@ export default function Form() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    localStorage.setItem("userProfile", JSON.stringify(formData));
-    router.push("/dashboard");
+  
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("User not authenticated");
+  
+      // Attempt to fetch the existing profile
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.uid)
+        .single();
+  
+      // Ignore the specific error indicating no rows were returned
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError; // Only throw if it's an unexpected error
+      }
+  
+      if (existingProfile) {
+        // Profile exists, so we update it
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update(formData)
+          .eq("user_id", user.uid);
+  
+        if (updateError) throw updateError;
+      } else {
+        // No existing profile, insert a new one
+        const { error: insertError } = await supabase
+          .from("profiles")
+          .insert([{ ...formData, user_id: user.uid }]);
+  
+        if (insertError) throw insertError;
+      }
+  
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err.message); // Set the error message to display
+    }
   };
+  
+  
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-200 to-purple-200">
@@ -36,79 +76,24 @@ export default function Form() {
         <h2 className="text-3xl font-extrabold mb-6 text-center text-gray-800">Profile Form</h2>
 
         <div className="space-y-4">
-          <div>
-            <label className="block text-gray-700 font-semibold mb-1">First Name</label>
-            <input
-              type="text"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-semibold mb-1">Last Name</label>
-            <input
-              type="text"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-semibold mb-1">Gender</label>
-            <input
-              type="text"
-              name="gender"
-              value={formData.gender}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-semibold mb-1">Age</label>
-            <input
-              type="number"
-              name="age"
-              value={formData.age}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-semibold mb-1">City</label>
-            <input
-              type="text"
-              name="city"
-              value={formData.city}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-semibold mb-1">Interests</label>
-            <input
-              type="text"
-              name="interests"
-              value={formData.interests}
-              onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              placeholder="Comma-separated (e.g., Coding, Reading)"
-              required
-            />
-          </div>
+          {Object.keys(formData).map((field) => (
+            <div key={field}>
+              <label className="block text-gray-700 font-semibold mb-1">
+                {field.charAt(0).toUpperCase() + field.slice(1)}
+              </label>
+              <input
+                type={field === "age" ? "number" : "text"}
+                name={field}
+                value={formData[field]}
+                onChange={handleChange}
+                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                required
+              />
+            </div>
+          ))}
         </div>
+
+        {error && <p className="text-red-500 text-center mt-4">{error}</p>}
 
         <button
           type="submit"
