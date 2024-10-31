@@ -4,10 +4,12 @@ import { auth, provider } from "../../lib/firebaseConfig";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabaseClient"; // Import Supabase client
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react"; // Import Lucide icons
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
   const [error, setError] = useState(null);
   const router = useRouter();
 
@@ -32,7 +34,7 @@ export default function LoginPage() {
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      
+
       const profileExists = await checkUserProfile(user.uid);
       router.push(profileExists ? "/dashboard" : "/forms"); // Redirect accordingly
     } catch (err) {
@@ -45,7 +47,7 @@ export default function LoginPage() {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       const user = result.user;
-      
+
       const profileExists = await checkUserProfile(user.uid);
       router.push(profileExists ? "/dashboard" : "/forms"); // Redirect accordingly
     } catch (err) {
@@ -71,18 +73,30 @@ export default function LoginPage() {
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <div>
+          <div className="relative">
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Password
             </label>
             <input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"} // Toggle input type
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-3 flex items-center"
+              style={{ top: '70%', transform: 'translateY(-50%)' }}
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5 text-gray-600" />
+              ) : (
+                <Eye className="w-5 h-5 text-gray-600" />
+              )}
+            </button>
           </div>
           <button
             type="submit"
@@ -96,7 +110,7 @@ export default function LoginPage() {
         </div>
         <button
           onClick={handleGoogleSignIn}
-          className="flex items-center justify-center w-full px-4 py-2 space-x-2 text-white bg-red-500 hover:bg-red-600 transition rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+          className="flex items-center justify-center w-full px-4 py-2 space-x-2 text-white bg-red-400 hover:bg-red-600 transition rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
         >
           <img src="/google-icon.svg" alt="Google" className="w-5 h-5" />
           <span>Sign in with Google</span>
