@@ -102,7 +102,7 @@ export default function Form() {
       >
         <h2 className="text-3xl font-extrabold mb-6 text-center text-gray-800">Profile Form</h2>
 
-        <div className="space-y-4">
+        <div className="space-y-4 text-black">
           {Object.keys(formData).map((field) => {
             if (field === "gender") {
               return (
