@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import { auth } from "../../lib/firebaseConfig";
 import { supabase } from "../../lib/supabaseClient";
 import { signOut } from "firebase/auth";
+import Link from "next/link";
 import { Camera, MapPin, Link as LinkIcon, Calendar, Edit2, LogOut, Grid, Mail, Phone } from 'lucide-react';
 
 export default function Dashboard() {
@@ -82,9 +83,11 @@ export default function Dashboard() {
       {/* Header */}
       <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
         <div className="max-w-5xl mx-auto px-4 h-16 flex justify-between items-center">
-          <h1 className="text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text">
-            My Profile
-          </h1>
+        <Link href="/home" passHref>
+  <h1 className="text-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-transparent bg-clip-text cursor-pointer">
+    Home
+  </h1>
+</Link>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 text-gray-600 hover:text-red-500 transition-colors duration-200"
