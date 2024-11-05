@@ -4,7 +4,7 @@ import { auth } from "../../lib/firebaseConfig";
 import { supabase } from "../../lib/supabaseClient";
 import { signOut } from "firebase/auth";
 import Link from "next/link";
-import { Camera, MapPin, Link as LinkIcon, Calendar, Edit2, LogOut, Grid, Mail, Phone } from 'lucide-react';
+import { Camera, MapPin, Link as LinkIcon, Calendar, Edit2, LogOut, Grid, User2, Mail, Phone, Heart } from 'lucide-react';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -146,17 +146,17 @@ export default function Dashboard() {
                   
                   let icon;
                   switch(key) {
-                    case "email":
-                      icon = <Mail size={18} />;
+                    case "age":
+                      icon = <Calendar size={18} />;
                       break;
-                    case "phone":
-                      icon = <Phone size={18} />;
+                    case "gender":
+                      icon = <User2 size={18} />;
                       break;
-                    case "location":
+                    case "city":
                       icon = <MapPin size={18} />;
                       break;
-                    case "website":
-                      icon = <LinkIcon size={18} />;
+                    case "interests":
+                      icon = <Heart size={18} />;
                       break;
                     default:
                       icon = <Grid size={18} />;

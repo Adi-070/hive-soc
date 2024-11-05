@@ -18,6 +18,46 @@ export default function Home() {
   const [showDropdown, setShowDropdown] = useState(false);
   const router = useRouter();
 
+  const calculateRelevanceScore = (profile, searchTerms, fullQuery) => {
+    const fullName = `${profile.firstName} ${profile.lastName}`.toLowerCase();
+    const firstName = profile.firstName.toLowerCase();
+    const lastName = profile.lastName.toLowerCase();
+    const query = fullQuery.toLowerCase();
+    let score = 0;
+
+    // Exact full name match gets highest score
+    if (fullName === query) {
+      score += 100;
+    }
+
+    // Exact first name or last name match
+    if (firstName === query || lastName === query) {
+      score += 50;
+    }
+
+    // Individual term matching
+    searchTerms.forEach(term => {
+      const termLower = term.toLowerCase();
+      
+      // Exact word matches
+      if (firstName === termLower || lastName === termLower) {
+        score += 30;
+      }
+      
+      // Starts with term
+      if (firstName.startsWith(termLower) || lastName.startsWith(termLower)) {
+        score += 20;
+      }
+      
+      // Contains term
+      if (firstName.includes(termLower) || lastName.includes(termLower)) {
+        score += 10;
+      }
+    });
+
+    return score;
+  };
+
   const handleInputChange = async (e) => {
     const inputValue = e.target.value;
     setQuery(inputValue);
@@ -29,17 +69,28 @@ export default function Home() {
     }
 
     // Fetch profiles for live search dropdown
+    const searchTerms = inputValue.trim().split(/\s+/);
+    
+
+    // Fetch profiles for live search dropdown
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .or(`firstName.ilike.%${inputValue}%`, `lastName.ilike.%${inputValue}%`)
-      .limit(5); // Limit to 5 results for dropdown
+      .or(searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%`).join(','))
+      .limit(5);
 
     if (error) {
       console.error("Error fetching profiles:", error.message);
       setSearchResults([]);
     } else {
-      setSearchResults(data);
+      const sortedResults = data
+        .map(profile => ({
+          ...profile,
+          relevanceScore: calculateRelevanceScore(profile, searchTerms, inputValue.trim())
+        }))
+        .sort((a, b) => b.relevanceScore - a.relevanceScore);
+
+      setSearchResults(sortedResults);
     }
   };
 
@@ -48,17 +99,32 @@ export default function Home() {
     setShowDropdown(false);  // Hide dropdown when performing main search
     setLoading(true);
 
+    const trimmedQuery = query.trim(); // Trim spaces
+    if (trimmedQuery.length === 0) {
+    setMainSearchResults([]);
+    setLoading(false);
+    return;
+    }
     // Fetch profiles for main search results
+    const searchTerms = trimmedQuery.split(/\s+/);
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .or(`firstName.ilike.%${query}%`, `lastName.ilike.%${query}%`);
+      .or(searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%`).join(','));
 
     if (error) {
       console.error("Error fetching profiles:", error.message);
       setMainSearchResults([]);
     } else {
-      setMainSearchResults(data);
+      const sortedResults = data
+        .map(profile => ({
+          ...profile,
+          relevanceScore: calculateRelevanceScore(profile, searchTerms, trimmedQuery)
+        }))
+        .sort((a, b) => b.relevanceScore - a.relevanceScore)
+        .map(({ relevanceScore, ...profile }) => profile); // Remove the score before setting state
+
+      setMainSearchResults(sortedResults);
     }
     setLoading(false);
   };
@@ -199,7 +265,7 @@ export default function Home() {
             {mainSearchResults.length > 0 ? (
               <ul className="bg-white shadow-lg rounded-lg p-4 space-y-2">
                 {mainSearchResults.map((profile) => (
-                  <li key={profile.user_id} className="p-4 border-b last:border-none">
+                  <li key={profile.user_id} className="p-4 border-b last:border-none cursor-pointer" onClick={() => router.push(`/profile/${profile.user_id}`)}>
                     <h3 className="text-lg font-semibold">
                       {profile.firstName} {profile.lastName}
                     </h3>
