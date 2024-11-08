@@ -16,51 +16,44 @@ export default function Home() {
   const [mainSearchResults, setMainSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchType, setSearchType] = useState('name');
   const router = useRouter();
 
   const calculateRelevanceScore = (profile, searchTerms, fullQuery) => {
-    const fullName = `${profile.firstName} ${profile.lastName}`.toLowerCase();
-    const firstName = profile.firstName.toLowerCase();
-    const lastName = profile.lastName.toLowerCase();
-    const interests = profile.interests.toLowerCase();
-    const query = fullQuery.toLowerCase();
-    let score = 0;
+    if (searchType === 'name') {
+      const fullName = `${profile.firstName} ${profile.lastName}`.toLowerCase();
+      const firstName = profile.firstName.toLowerCase();
+      const lastName = profile.lastName.toLowerCase();
+      const query = fullQuery.toLowerCase();
+      let score = 0;
 
-    // Exact full name match gets highest score
-    if (fullName === query) {
-      score += 100;
-    }
+      if (fullName === query) score += 100;
+      if (firstName === query || lastName === query) score += 50;
 
-    // Exact first name or last name match
-    if (firstName === query || lastName === query) {
-      score += 50;
-    }
+      searchTerms.forEach(term => {
+        const termLower = term.toLowerCase();
+        if (firstName === termLower || lastName === termLower) score += 30;
+        if (firstName.startsWith(termLower) || lastName.startsWith(termLower)) score += 20;
+        if (firstName.includes(termLower) || lastName.includes(termLower)) score += 10;
+      });
 
-    if (interests === query) {
-      score += 80;
-    }
+      return score;
+    } else {
+      // Interests search
+      const interests = (profile.interests || '').toLowerCase();
+      const query = fullQuery.toLowerCase();
+      let score = 0;
 
-    // Individual term matching
-    searchTerms.forEach(term => {
-      const termLower = term.toLowerCase();
+      if (interests === query) score += 100;
       
-      // Exact word matches
-      if (firstName === termLower || lastName === termLower || interests === termLower) {
-        score += 30;
-      }
-      
-      // Starts with term
-      if (firstName.startsWith(termLower) || lastName.startsWith(termLower) || interests.startsWith(termLower)) {
-        score += 20;
-      }
-      
-      // Contains term
-      if (firstName.includes(termLower) || lastName.includes(termLower) || interests.includes(termLower)) {
-        score += 10;
-      }
-    });
+      searchTerms.forEach(term => {
+        const termLower = term.toLowerCase();
+        if (interests.includes(termLower)) score += 30;
+        if (interests.startsWith(termLower)) score += 20;
+      });
 
-    return score;
+      return score;
+    }
   };
 
   const handleInputChange = async (e) => {
@@ -76,13 +69,22 @@ export default function Home() {
     // Fetch profiles for live search dropdown
     const searchTerms = inputValue.trim().split(/\s+/);
     
+    let querySearch = supabase
+      .from("profiles")
+      .select("*");
+
+    if (searchType === 'name') {
+      querySearch = querySearch.or(
+        searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%`).join(',')
+      );
+    } else {
+      querySearch = querySearch.or(
+        searchTerms.map(term => `interests.ilike.%${term}%`).join(',')
+      );
+    }
 
     // Fetch profiles for live search dropdown
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .or(searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%,interests.ilike.%${term}%`).join(','))
-      .limit(5);
+    const { data, error } = await querySearch.limit(5);
 
     if (error) {
       console.error("Error fetching profiles:", error.message);
@@ -112,10 +114,22 @@ export default function Home() {
     }
     // Fetch profiles for main search results
     const searchTerms = trimmedQuery.split(/\s+/);
-    const { data, error } = await supabase
+    
+    let querySearch = supabase
       .from("profiles")
-      .select("*")
-      .or(searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%,interests.ilike.%${term}%`).join(','));
+      .select("*");
+
+    if (searchType === 'name') {
+      querySearch = querySearch.or(
+        searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%`).join(',')
+      );
+    } else {
+      querySearch = querySearch.or(
+        searchTerms.map(term => `interests.ilike.%${term}%`).join(',')
+      );
+    }
+    
+    const { data, error } = await querySearch
 
     if (error) {
       console.error("Error fetching profiles:", error.message);
@@ -145,19 +159,45 @@ export default function Home() {
         <div className="w-16"></div> {/* Spacer */}
         <div className="flex-grow flex justify-center">
           <form onSubmit={handleSubmit} className="relative w-full max-w-2xl">
-            <input
-              type="text"
-              value={query}
-              onChange={handleInputChange}
-              placeholder="Search users by name..."
-              className="w-full py-2 px-4 pr-10 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <button
-              type="submit"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <Search className="h-5 w-5" />
-            </button>
+            <div className="flex space-x-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setSearchType('name')}
+                  className={`px-4 py-2 rounded-full ${
+                    searchType === 'name'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Search by Name
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchType('interests')}
+                  className={`px-4 py-2 rounded-full ${
+                    searchType === 'interests'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Search by Interests
+                </button>
+              </div>
+              <div className="relative">
+              <input
+                type="text"
+                value={query}
+                onChange={handleInputChange}
+                placeholder={searchType === 'name' ? "Search users by name..." : "Search users by interests..."}
+                className="w-full py-2 px-4 pr-10 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <button
+                type="submit"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+            </div>
 
           {/* Live Search Dropdown */}
 {showDropdown && searchResults.length > 0 && (
@@ -167,7 +207,9 @@ export default function Home() {
         key={profile.user_id}
         className="flex items-center px-4 py-2 hover:bg-gray-100 cursor-pointer space-x-3"
         onClick={() => {
-          setQuery(`${profile.firstName} ${profile.lastName}`);
+          setQuery(searchType === 'name' 
+            ? `${profile.firstName} ${profile.lastName}`
+            : profile.interests);
           setShowDropdown(false);
         }}
       >
