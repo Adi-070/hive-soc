@@ -22,6 +22,7 @@ export default function Home() {
     const fullName = `${profile.firstName} ${profile.lastName}`.toLowerCase();
     const firstName = profile.firstName.toLowerCase();
     const lastName = profile.lastName.toLowerCase();
+    const interests = profile.interests.toLowerCase();
     const query = fullQuery.toLowerCase();
     let score = 0;
 
@@ -35,22 +36,26 @@ export default function Home() {
       score += 50;
     }
 
+    if (interests === query) {
+      score += 80;
+    }
+
     // Individual term matching
     searchTerms.forEach(term => {
       const termLower = term.toLowerCase();
       
       // Exact word matches
-      if (firstName === termLower || lastName === termLower) {
+      if (firstName === termLower || lastName === termLower || interests === termLower) {
         score += 30;
       }
       
       // Starts with term
-      if (firstName.startsWith(termLower) || lastName.startsWith(termLower)) {
+      if (firstName.startsWith(termLower) || lastName.startsWith(termLower) || interests.startsWith(termLower)) {
         score += 20;
       }
       
       // Contains term
-      if (firstName.includes(termLower) || lastName.includes(termLower)) {
+      if (firstName.includes(termLower) || lastName.includes(termLower) || interests.includes(termLower)) {
         score += 10;
       }
     });
@@ -76,7 +81,7 @@ export default function Home() {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .or(searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%`).join(','))
+      .or(searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%,interests.ilike.%${term}%`).join(','))
       .limit(5);
 
     if (error) {
@@ -110,7 +115,7 @@ export default function Home() {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .or(searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%`).join(','));
+      .or(searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%,interests.ilike.%${term}%`).join(','));
 
     if (error) {
       console.error("Error fetching profiles:", error.message);
