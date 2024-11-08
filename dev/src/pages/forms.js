@@ -95,7 +95,7 @@ export default function Form() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-200 to-purple-200">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-200 to-purple-200 text-black">
       <form
         onSubmit={handleSubmit}
         className="bg-white shadow-xl rounded-lg p-8 w-full max-w-lg border border-gray-200"

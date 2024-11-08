@@ -139,8 +139,8 @@ export default function Home() {
     router.push("/login");
   };
 
-  return (
-    <div className="min-h-screen flex flex-col">
+  return ( 
+    <div className="min-h-screen flex flex-col text-black">
       <header className="p-4 flex items-center justify-between">
         <div className="w-16"></div> {/* Spacer */}
         <div className="flex-grow flex justify-center">
