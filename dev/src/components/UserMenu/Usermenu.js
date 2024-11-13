@@ -1,6 +1,7 @@
 'use client'
 
 import { User } from 'lucide-react'
+import Link from 'next/link'
 
 export const UserMenu = ({ isOpen, onToggle, onLogout }) => {
   return (
@@ -13,25 +14,24 @@ export const UserMenu = ({ isOpen, onToggle, onLogout }) => {
       </button>
       {isOpen && (
         <div className="absolute right-0 mt-12 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5">
-          <a
+          <Link
             href="/dashboard"
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
           >
             Your Profile
-          </a>
-          <a
-            href="#"
+          </Link>
+          <Link
+            href="/settings"
             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
           >
             Settings
-          </a>
-          <a
-            href="#"
-            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          </Link>
+          <button
+            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
             onClick={onLogout}
           >
             Sign out
-          </a>
+          </button>
         </div>
       )}
     </div>

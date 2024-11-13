@@ -17,7 +17,7 @@ export const SearchResultsModal = ({ isOpen, onClose, query, loading, searchResu
             </svg>
           </button>
         </div>
-        <p className="text-gray-600 mb-4">Results for "{query}"</p>
+        <p className="text-gray-600 mb-4">Results for &quot;{query}&quot;</p>
         {loading ? (
           <p>Loading...</p>
         ) : (
@@ -51,7 +51,7 @@ export const SearchResultsModal = ({ isOpen, onClose, query, loading, searchResu
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-600 text-center">No results found for "{query}"</p>
+              <p className="text-gray-600 text-center">No results found for &quot;{query}&quot;</p>
             )}
           </div>
         )}

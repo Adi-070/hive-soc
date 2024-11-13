@@ -240,7 +240,7 @@ export default function Dashboard() {
               <Users className="text-blue-500" size={20} />
               <h3 className="text-lg font-semibold">Friends</h3>
             </div>
-            <p className="text-gray-500 text-center py-4">You haven't connected with any friends yet.</p>
+            <p className="text-gray-500 text-center py-4">You haven&apos;t connected with any friends yet.</p>
           </div>
         </div>
       );
