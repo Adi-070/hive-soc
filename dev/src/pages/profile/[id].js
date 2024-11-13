@@ -46,7 +46,8 @@ export default function UserProfile() {
         .eq("user_id", userId)
         .single();
 
-      if (error) throw error;
+
+
       setProfile(data);
     } catch (err) {
       setError("Failed to load profile data.");
@@ -212,7 +213,12 @@ export default function UserProfile() {
                       <Heart className="text-blue-500" size={20} />
                       <div>
                         <p className="text-sm font-medium text-gray-500">Interests</p>
-                        <p className="text-gray-900 font-medium">{profile?.interests || "Not specified"}</p>
+                        <p className="text-gray-900 font-medium">
+  {Array.isArray(profile?.interests) && profile?.interests.length > 0
+    ? profile.interests.join(", ")
+    : "Not specified"}
+</p>
+
                       </div>
                     </div>
                   </div>

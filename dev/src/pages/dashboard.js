@@ -145,6 +145,12 @@ export default function Dashboard() {
       console.error("Error fetching friend requests:", err);
     }
   };
+  const formatValue = (value) => {
+    if (Array.isArray(value)) {
+      return value.join(", "); // Join array elements with comma and space
+    }
+    return value || "Not specified";
+  };
 
   const handleFriendRequest = async (requestId, status) => {
     try {
@@ -259,13 +265,16 @@ export default function Dashboard() {
                       {friend.firstName?.[0]}{friend.lastName?.[0]}
                     </div>
                     <div>
-                      <p className="font-medium">
-                        {friend.firstName} {friend.lastName}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {friend.city || "No location"} • {friend.interests || "No interests"}
-                      </p>
-                    </div>
+                  <p className="font-medium">
+                    {friend.firstName} {friend.lastName}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {friend.city || "No location"} •{" "}
+                    {Array.isArray(friend.interests) && friend.interests.length > 0
+                    ? friend.interests.join(", ")
+                    : "Not specified"}{/* Fallback if interests is empty or not specified */}
+                  </p>
+                </div>
                   </div>
                 </div>
               </Link>
@@ -387,23 +396,23 @@ export default function Dashboard() {
                       icon = <Grid size={18} />;
                   }
 
-                  return (
-                    <div key={key} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
-                      <div className="flex items-center gap-3">
-                        <div className="text-blue-500">
-                          {icon}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">
-                            {key.charAt(0).toUpperCase() + key.slice(1)}
-                          </p>
-                          <p className="text-gray-900 font-medium">
-                            {value || "Not specified"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
+                 return (
+          <div key={key} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+            <div className="flex items-center gap-3">
+              <div className="text-blue-500">
+                {icon}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">
+                  {key.charAt(0).toUpperCase() + key.slice(1)}
+                </p>
+                <p className="text-gray-900 font-medium">
+                  {formatValue(value)}
+                </p>
+              </div>
+            </div>
+          </div>
+        );
                 })}
               </div>
             </div>

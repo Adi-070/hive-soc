@@ -1,19 +1,19 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { supabase } from "../../lib/supabaseClient"; // Import Supabase client
-import { auth } from "../../lib/firebaseConfig"; // Import Firebase auth for user ID
+import { supabase } from "../../lib/supabaseClient";
+import { auth } from "../../lib/firebaseConfig";
 
 export default function Form() {
   const router = useRouter();
-  const { profile } = router.query;
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     gender: "",
     age: "",
     city: "",
-    interests: "",
+    interests: [],
   });
+  const [interestInput, setInterestInput] = useState("");
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export default function Form() {
             gender: data.gender || "",
             age: data.age || "",
             city: data.city || "",
-            interests: data.interests || "",
+            interests: data.interests || [],
           });
         } else if (error) {
           setError("Failed to load profile data.");
@@ -52,6 +52,27 @@ export default function Form() {
     }));
   };
 
+  const handleInterestChange = (e) => {
+    setInterestInput(e.target.value);
+  };
+
+  const addInterest = () => {
+    if (interestInput.trim() && !formData.interests.includes(interestInput.trim())) {
+      setFormData((prevData) => ({
+        ...prevData,
+        interests: [...prevData.interests, interestInput.trim()],
+      }));
+      setInterestInput("");
+    }
+  };
+
+  const removeInterest = (interest) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      interests: prevData.interests.filter((item) => item !== interest),
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -59,28 +80,24 @@ export default function Form() {
       const user = auth.currentUser;
       if (!user) throw new Error("User not authenticated");
 
-      // Attempt to fetch the existing profile
       const { data: existingProfile, error: fetchError } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", user.uid)
         .single();
 
-      // Ignore the specific error indicating no rows were returned
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        throw fetchError; // Only throw if it's an unexpected error
+      if (fetchError && fetchError.code !== "PGRST116") {
+        throw fetchError;
       }
 
       if (existingProfile) {
-        // Profile exists, so we update it
         const { error: updateError } = await supabase
           .from("profiles")
-          .update(formData)
+          .update({ ...formData, interests: formData.interests })
           .eq("user_id", user.uid);
 
         if (updateError) throw updateError;
       } else {
-        // No existing profile, insert a new one
         const { error: insertError } = await supabase
           .from("profiles")
           .insert([{ ...formData, user_id: user.uid }]);
@@ -90,7 +107,7 @@ export default function Form() {
 
       router.push("/dashboard");
     } catch (err) {
-      setError(err.message); // Set the error message to display
+      setError(err.message);
     }
   };
 
@@ -107,14 +124,12 @@ export default function Form() {
             if (field === "gender") {
               return (
                 <div key={field}>
-                  <label className="block text-gray-700 font-semibold mb-1">
-                    Gender
-                  </label>
+                  <label className="block text-gray-700 font-semibold mb-1">Gender</label>
                   <select
                     name={field}
                     value={formData[field]}
                     onChange={handleChange}
-                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    className="w-full p-3 border rounded-lg"
                     required
                   >
                     <option value="" disabled>Select Gender</option>
@@ -122,6 +137,40 @@ export default function Form() {
                     <option value="Female">Female</option>
                     <option value="Others">Others</option>
                   </select>
+                </div>
+              );
+            }
+
+            if (field === "interests") {
+              return (
+                <div key={field}>
+                  <label className="block text-gray-700 font-semibold mb-1">Interests</label>
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      value={interestInput}
+                      onChange={handleInterestChange}
+                      className="flex-grow p-3 border rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={addInterest}
+                      className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap">
+                    {formData.interests.map((interest) => (
+                      <span
+                        key={interest}
+                        className="mr-2 mb-2 px-3 py-1 bg-gray-200 rounded-full cursor-pointer"
+                        onClick={() => removeInterest(interest)}
+                      >
+                        {interest} &times;
+                      </span>
+                    ))}
+                  </div>
                 </div>
               );
             }
@@ -136,7 +185,7 @@ export default function Form() {
                   name={field}
                   value={formData[field]}
                   onChange={handleChange}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                  className="w-full p-3 border rounded-lg"
                   required
                 />
               </div>
@@ -148,7 +197,7 @@ export default function Form() {
 
         <button
           type="submit"
-          className="w-full mt-6 bg-blue-500 text-white font-bold py-3 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-300"
+          className="w-full mt-6 bg-blue-500 text-white font-bold py-3 rounded-lg"
         >
           Submit
         </button>
