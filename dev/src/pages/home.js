@@ -35,33 +35,57 @@ export default function Home() {
   }, [isModalOpen])
 
   const handleSearch = async (searchTerms, fullQuery) => {
-    let querySearch = supabase
+    if (searchType === 'name') {
+      // Name search remains the same
+      const querySearch = supabase
+        .from("profiles")
+        .select("*")
+        .or(
+          searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%`).join(',')
+        )
+  
+      const { data, error } = await querySearch
+  
+      if (error) {
+        console.error("Error fetching profiles:", error.message)
+        return []
+      }
+  
+      return data
+        .map(profile => ({
+          ...profile,
+          relevanceScore: calculateRelevanceScore(profile, searchTerms, fullQuery, searchType)
+        }))
+        .sort((a, b) => b.relevanceScore - a.relevanceScore)
+  
+    } else {
+      // Interests search with array containment
+      const { data, error } = await supabase
       .from("profiles")
       .select("*")
-
-    if (searchType === 'name') {
-      querySearch = querySearch.or(
-        searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%`).join(',')
-      )
-    } else {
-      querySearch = querySearch.or(
-        searchTerms.map(term => `interests.ilike.%${term}%`).join(',')
-      )
-    }
-
-    const { data, error } = await querySearch
 
     if (error) {
       console.error("Error fetching profiles:", error.message)
       return []
     }
 
-    return data
+    // Filter and score profiles in JavaScript
+    const filteredData = data.filter(profile => {
+      if (!Array.isArray(profile.interests)) return false;
+      return searchTerms.some(term => 
+        profile.interests.some(interest => 
+          interest.toLowerCase().includes(term.toLowerCase())
+        )
+      );
+    });
+
+    return filteredData
       .map(profile => ({
         ...profile,
         relevanceScore: calculateRelevanceScore(profile, searchTerms, fullQuery, searchType)
       }))
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
+    }
   }
 
   const handleInputChange = async (e) => {
@@ -109,15 +133,16 @@ export default function Home() {
         <div className="w-16"></div>
         <div className="flex-grow flex justify-center">
           <form onSubmit={handleSubmit} className="relative w-full max-w-2xl">
-            <SearchTypeToggle 
+            {/* <SearchTypeToggle 
               searchType={searchType}
               setSearchType={setSearchType}
-            />
+            /> */}
             <SearchInput
               query={query}
               onChange={handleInputChange}
               onSubmit={handleSubmit}
               searchType={searchType}
+              setSearchType={setSearchType}
             />
             {showDropdown && (
               <SearchDropdown
@@ -126,7 +151,7 @@ export default function Home() {
                 onSelect={(profile) => {
                   setQuery(searchType === 'name' 
                     ? `${profile.firstName} ${profile.lastName}`
-                    : profile.interests)
+                    : profile.interests.join(', '))
                   setShowDropdown(false)
                 }}
               />

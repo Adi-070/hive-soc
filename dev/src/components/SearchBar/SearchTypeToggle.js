@@ -1,30 +1,55 @@
 'use client'
+import { ChevronDown } from 'lucide-react';
+import { useEffect, useState } from "react";
 
-export const SearchTypeToggle = ({ searchType, setSearchType }) => {
+export const SearchTypeToggle = ({ searchType, setSearchType,showDropdown }) => {
+  const [showTypeDropdown, setShowTypeDropdown] = useState(null);
   return (
-    <div className="flex space-x-2 mb-2">
-      <button
-        type="button"
-        onClick={() => setSearchType('name')}
-        className={`px-4 py-2 rounded-full ${
-          searchType === 'name'
-            ? 'bg-blue-500 text-white'
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-        }`}
-      >
-        Search by Name
-      </button>
-      <button
-        type="button"
-        onClick={() => setSearchType('interests')}
-        className={`px-4 py-2 rounded-full ${
-          searchType === 'interests'
-            ? 'bg-blue-500 text-white'
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-        }`}
-      >
-        Search by Interests
-      </button>
+    <div className="relative w-full">
+      <div className="flex gap-0">
+        {/* Search Type Dropdown */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+            className="flex items-center justify-between px-4 py-2 bg-white border border-r-0 rounded-r-full hover:bg-gray-50 focus:outline-none"
+          >
+            <span className="mr-2">{searchType === 'name' ? 'Name' : 'Interests'}</span>
+            <ChevronDown size={16} />
+          </button>
+          
+          {/* Search Type Options */}
+          {showTypeDropdown && (
+            <div className="absolute left-0 mt-1 w-full bg-white border rounded-lg shadow-lg z-20">
+              <div
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  setSearchType('name');
+                  setShowTypeDropdown(false);
+                }}
+              >
+                Name
+              </div>
+              <div
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                onClick={() => {
+                  setSearchType('interests');
+                  setShowTypeDropdown(false);
+                }}
+              >
+                Interests
+              </div>
+            </div>
+          )}
+        </div>
+        {showDropdown && (
+        <SearchDropdown
+          searchResults={searchResults}
+          searchType={searchType}
+          onSelect={onSelect}
+        />
+      )}
+    </div>
     </div>
   )
 }

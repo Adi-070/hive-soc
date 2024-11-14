@@ -18,16 +18,24 @@ export const calculateRelevanceScore = (profile, searchTerms, fullQuery, searchT
   
       return score
     } else {
-      const interests = (profile.interests || '').toLowerCase()
+      const interests = Array.isArray(profile.interests) ? profile.interests : []
       const query = fullQuery.toLowerCase()
       let score = 0
   
-      if (interests === query) score += 100
-      
+      // Check exact matches for full query
+      if (interests.some(interest => interest.toLowerCase() === query)) {
+        score += 100
+      }
+  
+      // Check each search term against each interest
       searchTerms.forEach(term => {
         const termLower = term.toLowerCase()
-        if (interests.includes(termLower)) score += 30
-        if (interests.startsWith(termLower)) score += 20
+        interests.forEach(interest => {
+          const interestLower = interest.toLowerCase()
+          if (interestLower === termLower) score += 50
+          if (interestLower.includes(termLower)) score += 30
+          if (interestLower.startsWith(termLower)) score += 20
+        })
       })
   
       return score
