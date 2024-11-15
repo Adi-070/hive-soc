@@ -1,6 +1,7 @@
 'use client'
 import { ChevronDown } from 'lucide-react';
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { SearchDropdown } from './SearchDropdown';
 
 export const SearchTypeToggle = ({ searchType, setSearchType,showDropdown }) => {
   const [showTypeDropdown, setShowTypeDropdown] = useState(null);
