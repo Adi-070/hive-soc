@@ -43,7 +43,9 @@ export const SearchResultsModal = ({ isOpen, onClose, query, loading, searchResu
                           Age: {profile.age}, City: {profile.city}
                         </p>
                         <p className="text-sm text-gray-500 truncate">
-                          Interests: {profile.interests}
+                          Interests: {Array.isArray(profile?.interests) && profile?.interests.length > 0
+    ? profile.interests.join(", ")
+    : "Not specified"}
                         </p>
                       </div>
                     </div>
