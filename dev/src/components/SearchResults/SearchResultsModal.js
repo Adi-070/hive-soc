@@ -40,7 +40,16 @@ export const SearchResultsModal = ({ isOpen, onClose, query, loading, searchResu
                           {profile.firstName} {profile.lastName}
                         </p>
                         <p className="text-sm text-gray-500 truncate">
-                          Age: {profile.age}, City: {profile.city}
+                          Age: {profile.age}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                          Country: {profile.country}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                         City: {profile.city}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                         State: {profile.state}
                         </p>
                         <p className="text-sm text-gray-500 truncate">
                           Interests: {Array.isArray(profile?.interests) && profile?.interests.length > 0

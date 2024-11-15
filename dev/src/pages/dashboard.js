@@ -269,7 +269,6 @@ export default function Dashboard() {
                     {friend.firstName} {friend.lastName}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {friend.city || "No location"} •{" "}
                     {Array.isArray(friend.interests) && friend.interests.length > 0
                     ? friend.interests.join(", ")
                     : "Not specified"}{/* Fallback if interests is empty or not specified */}

@@ -200,6 +200,26 @@ export default function UserProfile() {
 
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center gap-3">
+                      <MapPin className="text-blue-500" size={20} />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Country</p>
+                        <p className="text-gray-900 font-medium">{profile?.country || "Not specified"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center gap-3">
+                      <MapPin className="text-blue-500" size={20} />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">State</p>
+                        <p className="text-gray-900 font-medium">{profile?.state|| "Not specified"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center gap-3">
                       <User2 className="text-blue-500" size={20} />
                       <div>
                         <p className="text-sm font-medium text-gray-500">Gender</p>

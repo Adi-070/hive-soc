@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabaseClient";
 import { auth } from "../../lib/firebaseConfig";
@@ -11,6 +12,8 @@ export default function Form() {
     lastName: "",
     gender: "",
     age: "",
+    country: "",
+    state: "",
     city: "",
     interests: [],
   });
@@ -18,6 +21,18 @@ export default function Form() {
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Dropdown data
+  const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+
+  // Loading states
+  const [isCountryLoading, setIsCountryLoading] = useState(false);
+  const [isStateLoading, setIsStateLoading] = useState(false);
+  const [isCityLoading, setIsCityLoading] = useState(false);
+
+  // Authorization token for Universal Tutorial API
+  const authToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7InVzZXJfZW1haWwiOiJtaXNocmFhZGl0eWE3NjBAZ21haWwuY29tIiwiYXBpX3Rva2VuIjoiUURCbVNLV0x0bFVYMkE0VkF4RS1WU1JMeGNHY3RZUy1OaGxuRzBTcXRRNGtGZlo3TUdhd2s5MWMycWxGWUlGT29TWSJ9LCJleHAiOjE3MzE3NzE0NzJ9.naKRtVY4C3Xm7oXL4MmLu_e_KlZKp8QUG9wOxn9VoxA";
   useEffect(() => {
     const loadProfile = async () => {
       const user = auth.currentUser;
@@ -35,8 +50,12 @@ export default function Form() {
             gender: data.gender || "",
             age: data.age || "",
             city: data.city || "",
+            country: data.country || "",
+            state: data.state || "",
             interests: data.interests || [],
           });
+          if (data.country) await fetchStates(data.country);
+          if (data.state) await fetchCities(data.state);
         } else if (error) {
           setError("Failed to load profile data.");
         }
@@ -45,6 +64,91 @@ export default function Form() {
 
     loadProfile();
   }, []);
+
+  useEffect(() => {
+    // Fetch countries when the component mounts
+    const fetchCountries = async () => {
+      setIsCountryLoading(true);
+      try {
+        const response = await axios.get(
+          "https://www.universal-tutorial.com/api/countries/",
+          {
+            headers: {
+              Authorization: authToken,
+              Accept: "application/json",
+            },
+          }
+        );
+        setCountries(response.data);
+      } catch (error) {
+        console.error("Error fetching countries:", error);
+      } finally {
+        setIsCountryLoading(false);
+      }
+    };
+
+    fetchCountries();
+  }, []);
+
+  const fetchStates = async (country) => {
+    setIsStateLoading(true);
+    try {
+      const response = await axios.get(
+        `https://www.universal-tutorial.com/api/states/${country}`,
+        {
+          headers: {
+            Authorization: authToken,
+            Accept: "application/json",
+          },
+        }
+      );
+      setStates(response.data);
+    } catch (error) {
+      console.error("Error fetching states:", error);
+    } finally {
+      setIsStateLoading(false);
+    }
+  };
+
+  const fetchCities = async (state) => {
+    setIsCityLoading(true);
+    try {
+      const response = await axios.get(
+        `https://www.universal-tutorial.com/api/cities/${state}`,
+        {
+          headers: {
+            Authorization: authToken,
+            Accept: "application/json",
+          },
+        }
+      );
+      setCities(response.data);
+    } catch (error) {
+      console.error("Error fetching cities:", error);
+    } finally {
+      setIsCityLoading(false);
+    }
+  };
+
+  const handleCountryChange = (e) => {
+    const country = e.target.value;
+    setFormData((prevData) => ({ ...prevData, country, state: "", city: "" }));
+    setStates([]);
+    setCities([]);
+    if (country) fetchStates(country);
+  };
+
+  const handleStateChange = (e) => {
+    const state = e.target.value;
+    setFormData((prevData) => ({ ...prevData, state, city: "" }));
+    setCities([]);
+    if (state) fetchCities(state);
+  };
+
+  const handleCityChange = (e) => {
+    const city = e.target.value;
+    setFormData((prevData) => ({ ...prevData, city }));
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -59,7 +163,7 @@ export default function Form() {
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       addInterest();
     }
@@ -104,7 +208,7 @@ export default function Form() {
       if (existingProfile) {
         const { error: updateError } = await supabase
           .from("profiles")
-          .update({ ...formData, interests: formData.interests })
+          .update({ ...formData })
           .eq("user_id", user.uid);
 
         if (updateError) throw updateError;
@@ -135,6 +239,8 @@ export default function Form() {
             <h2 className="text-3xl font-bold text-gray-900">Complete Your Profile</h2>
             <p className="mt-2 text-gray-600">Tell us more about yourself</p>
           </div>
+
+         
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -194,21 +300,65 @@ export default function Form() {
                 <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               </div>
             </div>
+        
+            <div>
+            <label className="block text-sm font-medium text-gray-700">Country</label>
+            <select
+              name="country"
+              value={formData.country}
+              onChange={handleCountryChange}
+              className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg"
+              required
+            >
+              <option value="" disabled>Select Country</option>
+              {countries.map((country) => (
+                <option key={country.country_name} value={country.country_name}>
+                  {country.country_name}
+                </option>
+              ))}
+            </select>
+            {isCountryLoading && <p>Loading countries...</p>}
+          </div>
 
-            <div className="relative md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700">City</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                  required
-                />
-                <MapPin className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              </div>
-            </div>
+          {/* State Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">State</label>
+            <select
+              name="state"
+              value={formData.state}
+              onChange={handleStateChange}
+              className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg"
+              required
+            >
+              <option value="" disabled>Select State</option>
+              {states.map((state) => (
+                <option key={state.state_name} value={state.state_name}>
+                  {state.state_name}
+                </option>
+              ))}
+            </select>
+            {isStateLoading && <p>Loading states...</p>}
+          </div>
+
+          {/* City Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">City</label>
+            <select
+              name="city"
+              value={formData.city}
+              onChange={handleCityChange}
+              className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg"
+              required
+            >
+              <option value="" disabled>Select City</option>
+              {cities.map((city) => (
+                <option key={city.city_name} value={city.city_name}>
+                  {city.city_name}
+                </option>
+              ))}
+            </select>
+            {isCityLoading && <p>Loading cities...</p>}
+          </div>
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700">Interests</label>
