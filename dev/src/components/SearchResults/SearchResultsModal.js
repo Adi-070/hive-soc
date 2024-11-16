@@ -32,8 +32,17 @@ export const SearchResultsModal = ({ isOpen, onClose, query, loading, searchResu
                   >
                     <div className="flex items-center space-x-4">
                       <div className="flex-shrink-0 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                        {profile.firstName[0]}
-                        {profile.lastName[0]}
+                      {profile?.display_picture ? (
+                    <img 
+                      src={profile.display_picture}
+                      alt={`${profile.firstName} ${profile.lastName}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
+                      {profile?.firstName?.[0]}{profile?.lastName?.[0]}
+                    </div>
+                  )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">

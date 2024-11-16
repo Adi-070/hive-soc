@@ -165,7 +165,17 @@ export default function UserProfile() {
               <div className="relative -mt-16 mb-4">
                 <div className="w-32 h-32 rounded-full border-4 border-white overflow-hidden bg-white shadow-lg">
                   <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
-                    {profile?.firstName?.[0]}{profile?.lastName?.[0]}
+                  {profile?.display_picture ? (
+                    <img 
+                      src={profile.display_picture}
+                      alt={`${profile.firstName} ${profile.lastName}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
+                      {profile?.firstName?.[0]}{profile?.lastName?.[0]}
+                    </div>
+                  )}
                   </div>
                 </div>
               </div>

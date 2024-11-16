@@ -73,7 +73,6 @@ export default function Dashboard() {
 
   const fetchFriends = async (userId) => {
     try {
-      // Fetch both cases where user is either user_id or friend_id
       const { data, error } = await supabase
         .from("friends")
         .select(`
@@ -83,14 +82,16 @@ export default function Dashboard() {
             lastName,
             user_id,
             city,
-            interests
+            interests,
+            display_picture
           ),
           friend_profile:profiles!friends_friend_id_fkey (
             firstName,
             lastName,
             user_id,
             city,
-            interests
+            interests,
+            display_picture
           )
         `)
         .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
@@ -98,10 +99,7 @@ export default function Dashboard() {
   
       if (error) throw error;
   
-      // Process the friends data to get unique friends
       const processedFriends = data.map(friendship => {
-        // If the current user is user_id, then get the friend's profile from friend_id
-        // If the current user is friend_id, then get the friend's profile from user_id
         const friendProfile = friendship.user_id === userId 
           ? friendship.friend_profile 
           : friendship.user_profile;
@@ -112,7 +110,6 @@ export default function Dashboard() {
         };
       });
   
-      // Remove duplicates based on user_id
       const uniqueFriends = Array.from(
         new Map(processedFriends.map(friend => [friend.user_id, friend]))
         .values()
@@ -133,7 +130,8 @@ export default function Dashboard() {
           profiles:user_id (
             firstName,
             lastName,
-            user_id
+            user_id,
+            display_picture
           )
         `)
         .eq("friend_id", userId)
@@ -145,9 +143,10 @@ export default function Dashboard() {
       console.error("Error fetching friend requests:", err);
     }
   };
+
   const formatValue = (value) => {
     if (Array.isArray(value)) {
-      return value.join(", "); // Join array elements with comma and space
+      return value.join(", ");
     }
     return value || "Not specified";
   };
@@ -161,7 +160,6 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // Refresh friend requests and friends list
       if (user) {
         await fetchFriendRequests(user.uid);
         await fetchFriends(user.uid);
@@ -203,11 +201,26 @@ export default function Dashboard() {
           <div className="space-y-4">
             {friendRequests.map((request) => (
               <div key={request.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium">
-                    {request.profiles.firstName} {request.profiles.lastName}
-                  </p>
-                  <p className="text-sm text-gray-500">Wants to connect with you</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full overflow-hidden">
+                    {request.profiles.display_picture ? (
+                      <img
+                        src={request.profiles.display_picture}
+                        alt={`${request.profiles.firstName} ${request.profiles.lastName}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-lg font-bold">
+                        {request.profiles.firstName?.[0]}{request.profiles.lastName?.[0]}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium">
+                      {request.profiles.firstName} {request.profiles.lastName}
+                    </p>
+                    <p className="text-sm text-gray-500">Wants to connect with you</p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -261,19 +274,29 @@ export default function Dashboard() {
               <Link href={`/profile/${friend.user_id}`} key={friend.user_id}>
                 <div className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 cursor-pointer">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white text-lg font-bold">
-                      {friend.firstName?.[0]}{friend.lastName?.[0]}
+                    <div className="w-12 h-12 rounded-full overflow-hidden">
+                      {friend.display_picture ? (
+                        <img
+                          src={friend.display_picture}
+                          alt={`${friend.firstName} ${friend.lastName}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-lg font-bold">
+                          {friend.firstName?.[0]}{friend.lastName?.[0]}
+                        </div>
+                      )}
                     </div>
                     <div>
-                  <p className="font-medium">
-                    {friend.firstName} {friend.lastName}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {Array.isArray(friend.interests) && friend.interests.length > 0
-                    ? friend.interests.join(", ")
-                    : "Not specified"}{/* Fallback if interests is empty or not specified */}
-                  </p>
-                </div>
+                      <p className="font-medium">
+                        {friend.firstName} {friend.lastName}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {Array.isArray(friend.interests) && friend.interests.length > 0
+                          ? friend.interests.join(", ")
+                          : "Not specified"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </Link>
@@ -341,9 +364,17 @@ export default function Dashboard() {
               {/* Profile Image */}
               <div className="relative -mt-16 mb-4">
                 <div className="w-32 h-32 rounded-full border-4 border-white overflow-hidden bg-white shadow-lg">
-                  <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
-                    {profile?.firstName?.[0]}{profile?.lastName?.[0]}
-                  </div>
+                  {profile?.display_picture ? (
+                    <img 
+                      src={profile.display_picture}
+                      alt={`${profile.firstName} ${profile.lastName}`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
+                      {profile?.firstName?.[0]}{profile?.lastName?.[0]}
+                    </div>
+                  )}
                 </div>
                 <button 
                   onClick={handleEditProfile}

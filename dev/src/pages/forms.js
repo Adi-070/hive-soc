@@ -5,6 +5,20 @@ import { supabase } from "../../lib/supabaseClient";
 import { auth } from "../../lib/firebaseConfig";
 import { User2, MapPin, Calendar, Tag, X, Plus } from "lucide-react";
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
+
+const validateImageFile = (file) => {
+  if (!file) return 'No file selected';
+  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+    return 'Invalid file type. Please upload a JPEG, PNG, or GIF';
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    return 'File size too large. Maximum size is 5MB';
+  }
+  return null;
+};
+
 export default function Form() {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -16,9 +30,11 @@ export default function Form() {
     state: "",
     city: "",
     interests: [],
+    display_picture: ""
   });
   const [interestInput, setInterestInput] = useState("");
   const [error, setError] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dropdown data
@@ -32,7 +48,7 @@ export default function Form() {
   const [isCityLoading, setIsCityLoading] = useState(false);
 
   // Authorization token for Universal Tutorial API
-  const authToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7InVzZXJfZW1haWwiOiJtaXNocmFhZGl0eWE3NjBAZ21haWwuY29tIiwiYXBpX3Rva2VuIjoiUURCbVNLV0x0bFVYMkE0VkF4RS1WU1JMeGNHY3RZUy1OaGxuRzBTcXRRNGtGZlo3TUdhd2s5MWMycWxGWUlGT29TWSJ9LCJleHAiOjE3MzE3NzE0NzJ9.naKRtVY4C3Xm7oXL4MmLu_e_KlZKp8QUG9wOxn9VoxA";
+  const authToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7InVzZXJfZW1haWwiOiJtaXNocmFzYW50b3NoMDgxQGdtYWlsLmNvbSIsImFwaV90b2tlbiI6IkdhZXliRnp4VU1uVHJXZHVNanlIYnhTcThGRUZZVTc5LVFKNzNnZ0pRbmVKYzkydkhNREdKUlZoR3RyakJvVWoxWFkifSwiZXhwIjoxNzMxODY0MTI0fQ.qPVwns38RMuiyIbcD-sDnPfVVKzK4usIKHoGVekqvAg";
   useEffect(() => {
     const loadProfile = async () => {
       const user = auth.currentUser;
@@ -53,6 +69,7 @@ export default function Form() {
             country: data.country || "",
             state: data.state || "",
             interests: data.interests || [],
+            display_picture: data.display_picture || "",
           });
           if (data.country) await fetchStates(data.country);
           if (data.state) await fetchCities(data.state);
@@ -186,43 +203,106 @@ export default function Form() {
     }));
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    setImageFile(file);
+  };
+
+  const uploadImage = async (file) => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+  
+    const validationError = validateImageFile(file);
+    if (validationError) throw new Error(validationError);
+  
+    try {
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.uid}-${Date.now()}.${fileExt}`;
+  
+      // Delete old profile picture if it exists
+      const oldImageUrl = formData.display_picture;
+      if (oldImageUrl) {
+        const oldFileName = oldImageUrl.split('/').pop();
+        await supabase.storage
+          .from('profile-pictures')
+          .remove([oldFileName]);
+      }
+  
+      // Upload new image
+      const { data, error: uploadError } = await supabase.storage
+        .from('profile-pictures')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+  
+      if (uploadError) throw uploadError;
+  
+      // Get the public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('profile-pictures')
+        .getPublicUrl(fileName);
+  
+      return publicUrlData.publicUrl;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw new Error(`Failed to upload image: ${error.message}`);
+    }
+  };
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-
+  
     try {
       const user = auth.currentUser;
-      if (!user) throw new Error("User not authenticated");
-
+      if (!user) throw new Error('User not authenticated');
+  
+      let displayPictureUrl = formData.display_picture;
+  
+      // Upload image if a new file is selected
+      if (imageFile) {
+        displayPictureUrl = await uploadImage(imageFile);
+      }
+  
+      const updatedData = {
+        ...formData,
+        display_picture: displayPictureUrl,
+        // updated_at: new Date().toISOString()
+      };
+  
       const { data: existingProfile, error: fetchError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user.uid)
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.uid)
         .single();
-
-      if (fetchError && fetchError.code !== "PGRST116") {
+  
+      if (fetchError && fetchError.code !== 'PGRST116') {
         throw fetchError;
       }
-
+  
       if (existingProfile) {
         const { error: updateError } = await supabase
-          .from("profiles")
-          .update({ ...formData })
-          .eq("user_id", user.uid);
-
+          .from('profiles')
+          .update(updatedData)  // Fixed: Remove the extra object wrapper
+          .eq('user_id', user.uid);
+  
         if (updateError) throw updateError;
       } else {
         const { error: insertError } = await supabase
-          .from("profiles")
-          .insert([{ ...formData, user_id: user.uid }]);
-
+          .from('profiles')
+          .insert([{ ...updatedData, user_id: user.uid }]);
+  
         if (insertError) throw insertError;
       }
-
-      router.push("/dashboard");
+  
+      router.push('/dashboard');
     } catch (err) {
       setError(err.message);
+      console.error('Submission error:', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -359,6 +439,33 @@ export default function Form() {
             </select>
             {isCityLoading && <p>Loading cities...</p>}
           </div>
+
+          <div>
+  <label className="block text-sm font-medium text-gray-700">Upload Display Picture</label>
+  <input
+    type="file"
+    accept="image/*"
+    onChange={handleImageChange}
+    className="mt-1 block w-full"
+  />
+  {imageFile && (
+    <p className="mt-2 text-sm text-gray-500">
+      Selected file: {imageFile.name} ({(imageFile.size / 1024 / 1024).toFixed(2)}MB)
+    </p>
+  )}
+  {formData.display_picture && (
+    <div className="mt-4 relative">
+      <img
+        src={formData.display_picture}
+        alt="Display Picture"
+        className="w-32 h-32 rounded-full object-cover"
+      />
+      <p className="mt-2 text-xs text-gray-500">Current profile picture</p>
+    </div>
+  )}
+</div>
+
+
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700">Interests</label>
