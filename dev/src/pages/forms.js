@@ -22,6 +22,7 @@ const validateImageFile = (file) => {
 export default function Form() {
   const router = useRouter();
   const [formData, setFormData] = useState({
+    userName:"",
     firstName: "",
     lastName: "",
     gender: "",
@@ -61,6 +62,7 @@ export default function Form() {
 
         if (data) {
           setFormData({
+            userName:data.userName || "",
             firstName: data.firstName || "",
             lastName: data.lastName || "",
             gender: data.gender || "",
@@ -323,6 +325,19 @@ export default function Form() {
          
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700">User Name</label>
+              <input
+                type="text"
+                name="userName"
+                value={formData.userName}
+                onChange={handleChange}
+                className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                required
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700">First Name</label>
               <input

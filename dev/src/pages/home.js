@@ -41,7 +41,7 @@ export default function Home() {
         .from("profiles")
         .select("*")
         .or(
-          searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%`).join(',')
+          searchTerms.map(term => `firstName.ilike.%${term}%,lastName.ilike.%${term}%,userName.ilike.%${term}%`).join(',')
         )
   
       const { data, error } = await querySearch
@@ -150,7 +150,7 @@ export default function Home() {
                 searchType={searchType}
                 onSelect={(profile) => {
                   setQuery(searchType === 'name' 
-                    ? `${profile.firstName} ${profile.lastName}`
+                    ? `${profile.firstName} ${profile.lastName} ${profile.userName}`
                     : profile.interests.join(', '))
                   setShowDropdown(false)
                 }}

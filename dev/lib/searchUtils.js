@@ -3,17 +3,18 @@ export const calculateRelevanceScore = (profile, searchTerms, fullQuery, searchT
       const fullName = `${profile.firstName} ${profile.lastName}`.toLowerCase()
       const firstName = profile.firstName.toLowerCase()
       const lastName = profile.lastName.toLowerCase()
+      const userName = profile.userName.toLowerCase()
       const query = fullQuery.toLowerCase()
       let score = 0
   
-      if (fullName === query) score += 100
+      if (fullName === query || userName === query) score += 100
       if (firstName === query || lastName === query) score += 50
   
       searchTerms.forEach(term => {
         const termLower = term.toLowerCase()
-        if (firstName === termLower || lastName === termLower) score += 30
-        if (firstName.startsWith(termLower) || lastName.startsWith(termLower)) score += 20
-        if (firstName.includes(termLower) || lastName.includes(termLower)) score += 10
+        if (firstName === termLower || lastName === termLower || userName === termLower) score += 30
+        if (firstName.startsWith(termLower) || lastName.startsWith(termLower) || userName.startsWith(termLower)) score += 20
+        if (firstName.includes(termLower) || lastName.includes(termLower) || userName.includes(termLower)) score += 10
       })
   
       return score

@@ -29,7 +29,7 @@ export const SearchDropdown = ({ searchResults, searchType, onSelect }) => {
       {/* User Information */}
       <div>
         <p className="text-gray-900 font-medium">
-          {profile.firstName} {profile.lastName}
+          {profile.userName} {'|'} {profile.firstName} {profile.lastName}
         </p>
         <p className="text-gray-500 text-sm">
           {profile.city ? `${profile.city}, ` : ''}{profile.age ? `Age: ${profile.age}` : ''}

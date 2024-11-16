@@ -128,6 +128,7 @@ export default function Dashboard() {
         .select(`
           *,
           profiles:user_id (
+            userName,
             firstName,
             lastName,
             user_id,
@@ -388,7 +389,7 @@ export default function Dashboard() {
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
-                    {profile?.firstName} {profile?.lastName}
+                    {profile?.userName} 
                   </h2>
                   <p className="text-gray-500 text-sm">
                     Member since {user?.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : "N/A"}
@@ -407,6 +408,8 @@ export default function Dashboard() {
               <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                 {profile && Object.entries(profile).map(([key, value]) => {
                   if (key === "user_id") return null;
+                  if (key === "userName") return null;
+                  if (key === "display_picture") return null;
                   
                   let icon;
                   switch(key) {
