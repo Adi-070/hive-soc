@@ -183,11 +183,31 @@ export default function UserProfile() {
               <div className="flex flex-col gap-6">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
-                    {profile?.firstName} {profile?.lastName}
+                    {profile?.userName}
                   </h2>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center gap-3">
+                      <Calendar className="text-blue-500" size={20} />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">First name</p>
+                        <p className="text-gray-900 font-medium">{profile?.firstName || "Not specified"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center gap-3">
+                      <Calendar className="text-blue-500" size={20} />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Last name</p>
+                        <p className="text-gray-900 font-medium">{profile?.lastName || "Not specified"}</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center gap-3">
                       <Calendar className="text-blue-500" size={20} />
@@ -244,11 +264,10 @@ export default function UserProfile() {
                       <div>
                         <p className="text-sm font-medium text-gray-500">Interests</p>
                         <p className="text-gray-900 font-medium">
-  {Array.isArray(profile?.interests) && profile?.interests.length > 0
-    ? profile.interests.join(", ")
-    : "Not specified"}
-</p>
-
+                          {Array.isArray(profile?.interests) && profile?.interests.length > 0
+                            ? profile.interests.join(", ")
+                            : "Not specified"}
+                        </p>
                       </div>
                     </div>
                   </div>
