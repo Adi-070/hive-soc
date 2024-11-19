@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { auth } from "../../../lib/firebaseConfig"; // Importing the auth object from firebaseConfig
-import { supabase } from "../../../lib/supabaseClient"; // Supabase Client
+import { auth } from "../../../lib/firebaseConfig";
+import { supabase } from "../../../lib/supabaseClient";
 import Link from "next/link";
-import { MapPin, Heart, User2, Calendar, ArrowLeft } from 'lucide-react';
-import { onAuthStateChanged } from "firebase/auth"; // Firebase Auth State Listener
+import { MapPin, Heart, User2, Calendar, ArrowLeft, KeyRound, Bell, ShieldCheck } from 'lucide-react';
+import { onAuthStateChanged } from "firebase/auth";
+import { ErrorMessage } from "@/components/dashboard/ErrorMessage";
+import { LoadingSpinner } from "@/components/dashboard/LoadingSpinner";
+import ProfileData from "@/components/dashboard/ProfileData";
+
+
 
 export default function UserProfile() {
   const [profile, setProfile] = useState(null);
@@ -12,21 +17,20 @@ export default function UserProfile() {
   const [error, setError] = useState(null);
   const [isFriend, setIsFriend] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null); // State to hold the current Firebase user
+  const [currentUser, setCurrentUser] = useState(null);
   const router = useRouter();
   const { id } = router.query;
 
   useEffect(() => {
-    // Firebase Auth state listener to track user authentication
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setCurrentUser(user); // Set the current authenticated user
+        setCurrentUser(user);
       } else {
-        setCurrentUser(null); // If no user is authenticated
+        setCurrentUser(null);
       }
     });
 
-    return () => unsubscribe(); // Cleanup the listener on component unmount
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -36,7 +40,6 @@ export default function UserProfile() {
     }
   }, [id, currentUser]);
 
-  // Fetch profile data from Supabase
   const fetchUserProfile = async (userId) => {
     try {
       setLoading(true);
@@ -45,9 +48,6 @@ export default function UserProfile() {
         .select("*")
         .eq("user_id", userId)
         .single();
-
-
-
       setProfile(data);
     } catch (err) {
       setError("Failed to load profile data.");
@@ -56,9 +56,8 @@ export default function UserProfile() {
     }
   };
 
-  // Check if the current user is already friends or has sent a friend request
   const checkFriendStatus = async (userId) => {
-    if (!currentUser) return; // Ensure there's a logged-in user
+    if (!currentUser) return;
 
     try {
       const { data, error } = await supabase
@@ -82,32 +81,30 @@ export default function UserProfile() {
     }
   };
 
-  // Send a friend request (create a record in the 'friends' table)
   const handleAddFriend = async () => {
-    if (!currentUser) return; // If no user is logged in, return
+    if (!currentUser) return;
 
     try {
       const { data, error } = await supabase
         .from("friends")
-        .insert([
-          {
-            user_id: currentUser.uid,
-            friend_id: id,
-            status: "pending", // Pending status until the other user accepts
-          },
-        ]);
+        .insert([{
+          user_id: currentUser.uid,
+          friend_id: id,
+          status: "pending",
+        }]);
 
       if (error) throw error;
 
-      setRequestSent(true); // Set the request sent status to true
+      setRequestSent(true);
     } catch (error) {
       console.error("Failed to send friend request", error);
     }
   };
 
-  // Remove a friend (delete the record from the 'friends' table)
+  
+
   const handleUnfriend = async () => {
-    if (!currentUser) return; // If no user is logged in, return
+    if (!currentUser) return;
 
     try {
       const { data, error } = await supabase
@@ -120,28 +117,22 @@ export default function UserProfile() {
 
       if (error) throw error;
 
-      setIsFriend(false); // Update the isFriend state
-      setRequestSent(false); // Reset the requestSent state
+      setIsFriend(false);
+      setRequestSent(false);
     } catch (error) {
       console.error("Failed to unfriend", error);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  const formatValue = (value) => {
+    if (Array.isArray(value)) {
+      return value.join(", ");
+    }
+    return value || "Not specified";
+  };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-red-500">{error}</div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage message={error} />;
 
   return (
     <div className="min-h-screen bg-gray-50 text-black">
@@ -156,148 +147,136 @@ export default function UserProfile() {
         </div>
       </header>
 
-      <main className="pt-24 pb-12 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-500"></div>
-            
-            <div className="px-6 pb-6">
-              <div className="relative -mt-16 mb-4">
-                <div className="w-32 h-32 rounded-full border-4 border-white overflow-hidden bg-white shadow-lg">
-                  <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
-                  {profile?.display_picture ? (
-                    <img 
-                      src={profile.display_picture}
-                      alt={`${profile.firstName} ${profile.lastName}`}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
+      <div className="pt-24 pb-12 px-4">
+        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-8">
+          {/* Sidebar */}
+          <aside className="w-full lg:w-64 shrink-0">
+            <nav className="space-y-1">
+              <Link href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md bg-blue-50 text-blue-700">
+                <User2 className="mr-3 h-4 w-4" />
+                <span>Friend's Profile</span>
+              </Link>
+            </nav>
+          </aside>
+
+          {/* Main Profile Section */}
+          <main className="flex-1">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+
+              <div className="px-6 pb-6">
+                <div className="relative -mt-16 mb-4">
+                  <div className="w-32 h-32 rounded-full border-4 border-white overflow-hidden bg-white shadow-lg">
                     <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
-                      {profile?.firstName?.[0]}{profile?.lastName?.[0]}
-                    </div>
-                  )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    {profile?.userName}
-                  </h2>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="text-blue-500" size={20} />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">First name</p>
-                        <p className="text-gray-900 font-medium">{profile?.firstName || "Not specified"}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="text-blue-500" size={20} />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Last name</p>
-                        <p className="text-gray-900 font-medium">{profile?.lastName || "Not specified"}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="text-blue-500" size={20} />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Age</p>
-                        <p className="text-gray-900 font-medium">{profile?.age || "Not specified"}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <MapPin className="text-blue-500" size={20} />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">City</p>
-                        <p className="text-gray-900 font-medium">{profile?.city || "Not specified"}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <MapPin className="text-blue-500" size={20} />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Country</p>
-                        <p className="text-gray-900 font-medium">{profile?.country || "Not specified"}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <MapPin className="text-blue-500" size={20} />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">State</p>
-                        <p className="text-gray-900 font-medium">{profile?.state|| "Not specified"}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <User2 className="text-blue-500" size={20} />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Gender</p>
-                        <p className="text-gray-900 font-medium">{profile?.gender || "Not specified"}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center gap-3">
-                      <Heart className="text-blue-500" size={20} />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">Interests</p>
-                        <p className="text-gray-900 font-medium">
-                          {Array.isArray(profile?.interests) && profile?.interests.length > 0
-                            ? profile.interests.join(", ")
-                            : "Not specified"}
-                        </p>
-                      </div>
+                      {profile?.display_picture ? (
+                        <img
+                          src={profile.display_picture}
+                          alt={`${profile.firstName} ${profile.lastName}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
+                          {profile?.firstName?.[0]}{profile?.lastName?.[0]}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Add/Unfriend Button */}
-                <div className="mt-6">
-                  {isFriend ? (
-                    <button
-                      onClick={handleUnfriend}
-                      className="w-full bg-red-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-600 transition"
-                    >
-                      Unfriend
-                    </button>
-                  ) : requestSent ? (
-                    <p className="text-blue-900 font-medium">Request sent</p>
-                  ) : (
-                    <button
-                      onClick={handleAddFriend}
-                      className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-600 transition"
-                    >
-                      Add Friend
-                    </button>
-                  )}
+                <div className="flex flex-col gap-6">
+                  <h2 className="text-2xl font-bold text-gray-900">{profile?.userName}</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Profile Details */}
+
+                    
+                    
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="text-blue-500" size={20} />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">First Name</p>
+                          <p className="text-gray-900 font-medium">{profile?.firstName || "Not specified"}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <MapPin className="text-blue-500" size={20} />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Gender</p>
+                          <p className="text-gray-900 font-medium">{profile?.gender || "Not specified"}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <MapPin className="text-blue-500" size={20} />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">City</p>
+                          <p className="text-gray-900 font-medium">{profile?.city || "Not specified"}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <MapPin className="text-blue-500" size={20} />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">State</p>
+                          <p className="text-gray-900 font-medium">{profile?.state || "Not specified"}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <MapPin className="text-blue-500" size={20} />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Country</p>
+                          <p className="text-gray-900 font-medium">{profile?.country || "Not specified"}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <MapPin className="text-blue-500" size={20} />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500">Interests</p>
+                          <p className="text-gray-900 font-medium">{formatValue(profile?.interests)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Add/Unfriend Button */}
+                  <div className="mt-6">
+                    {isFriend ? (
+                      <button
+                        onClick={handleUnfriend}
+                        className="w-full bg-red-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-600 transition"
+                      >
+                        Unfriend
+                      </button>
+                    ) : requestSent ? (
+                      <p className="text-blue-900 font-medium">Request sent</p>
+                    ) : (
+                      <button
+                        onClick={handleAddFriend}
+                        className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-600 transition"
+                      >
+                        Add Friend
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </main>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
