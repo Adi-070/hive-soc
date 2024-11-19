@@ -49,7 +49,7 @@ export default function Form() {
   const [isCityLoading, setIsCityLoading] = useState(false);
 
   // Authorization token for Universal Tutorial API
-  const authToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7InVzZXJfZW1haWwiOiJnaG9zaHN1Ymhham95MDRAZ21haWwuY29tIiwiYXBpX3Rva2VuIjoiaGF2N0s5WmRDZ0hZQnRKaXgzZVNrZ2J0MndTeXJORHhXRGpGRkItT3FnY2MzMzJQOS05a3B4Nm4tc2wtamV3OV90dyJ9LCJleHAiOjE3MzIwMjI5MjN9.ThKQnegsz_nRgrGeWi8clbxpuu8FE2NeYwMGnhVEdJ8";
+  const authToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7InVzZXJfZW1haWwiOiJhZGl0eWFtaXNocmF3b3JraW5nLjc1QGdtYWlsLmNvbSIsImFwaV90b2tlbiI6IjBVMm5OaEljNlNDQkphVjhPSndtOHlzZ3o1TUp0RlFJVVk4cW9oSV83ZV9LT3Y1UlhyV3ZSQnJSN21lUGw0WGdHZncifSwiZXhwIjoxNzMyMTE5Nzg1fQ.fvF0lsFg8JoNkR8N4DJhuH_L1d6fXgE2tZoe1rfduzY";
   useEffect(() => {
     const loadProfile = async () => {
       const user = auth.currentUser;
