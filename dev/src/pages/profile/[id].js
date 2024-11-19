@@ -154,7 +154,7 @@ export default function UserProfile() {
             <nav className="space-y-1">
               <Link href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md bg-blue-50 text-blue-700">
                 <User2 className="mr-3 h-4 w-4" />
-                <span>Friend's Profile</span>
+                <span>Friend&apos;s Profile</span>
               </Link>
             </nav>
           </aside>
