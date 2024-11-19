@@ -1,16 +1,16 @@
 import { Camera } from 'lucide-react';
 
 export const ProfileHeader = ({ profile, onEditProfile }) => (
-  <div className="flex items-center gap-4 mb-6">
+  <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-6 mb-6">
     <div className="relative">
       {profile?.display_picture ? (
         <img 
           src={profile.display_picture}
           alt={`${profile.firstName} ${profile.lastName}`}
-          className="w-24 h-24 rounded-full object-cover"
+          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover"
         />
       ) : (
-        <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold">
           {profile?.firstName?.[0]}{profile?.lastName?.[0]}
         </div>
       )}
@@ -21,12 +21,18 @@ export const ProfileHeader = ({ profile, onEditProfile }) => (
         <Camera className="w-4 h-4 text-gray-600" />
       </button>
     </div>
-    <div className="space-x-4">
-      <button onClick={onEditProfile} className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+      <button 
+        onClick={onEditProfile} 
+        className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm w-full sm:w-auto"
+      >
         Upload New
       </button>
-      <button onClick={onEditProfile} className="px-3 py-1 border border-gray-300 text-gray-600 rounded-md text-sm">
-        Delete avatar
+      <button 
+        onClick={onEditProfile} 
+        className="px-3 py-1 border border-gray-300 text-gray-600 rounded-md text-sm w-full sm:w-auto"
+      >
+        Delete Avatar
       </button>
     </div>
   </div>
