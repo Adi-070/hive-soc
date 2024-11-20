@@ -1,4 +1,3 @@
-// app/page.js
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -6,10 +5,25 @@ import { signOut } from "firebase/auth"
 import { auth } from "../../lib/firebaseConfig"
 import { supabase } from "../../lib/supabaseClient"
 import { useRouter } from 'next/navigation'
-import { SearchTypeToggle, SearchInput, SearchDropdown } from '../components/SearchBar'
+import { SearchInput, SearchDropdown, SearchTypeToggle } from '../components/SearchBar'
 import { UserMenu } from '../components/UserMenu/Usermenu'
 import { SearchResultsModal } from '../components/SearchResults/SearchResultsModal'
+import { X } from 'lucide-react'
 import { calculateRelevanceScore } from '../../lib/searchUtils'
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
+
+const validateImageFile = (file) => {
+  if (!file) return 'No file selected';
+  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+    return 'Invalid file type. Please upload a JPEG, PNG, or GIF';
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    return 'File size too large. Maximum size is 5MB';
+  }
+  return null;
+};
 
 export default function Home() {
   const [query, setQuery] = useState('')
@@ -17,8 +31,11 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
-  const [searchType, setSearchType] = useState('name')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false)
+  const [searchType, setSearchType] = useState('name')
+  const [postDetails, setPostDetails] = useState({ title: '', content: '', category: [], image: null })
+  const [currentCategory, setCurrentCategory] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -33,6 +50,124 @@ export default function Home() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [isModalOpen])
+  // Handle post creation
+  const handlePostUpload = async (e) => {
+    e.preventDefault()
+    const { title, content, category, image } = postDetails
+
+    if (!title || !content) {
+      alert("Please provide both title and content!")
+      return
+    }
+
+    let imageUrl = null
+
+    if (image) {
+      // Validate the image
+      const validationError = validateImageFile(image);
+      if (validationError) {
+        alert(validationError);
+        return;
+      }
+
+      try {
+        // Upload image to Supabase storage (posts-images bucket)
+        const { data, error } = await supabase.storage
+          .from('posts-images')
+          .upload(`${Date.now()}_${image.name}`, image)
+
+        if (error) {
+          console.error("Error uploading image:", error.message)
+          alert("Failed to upload image. Please try again.")
+          return
+        }
+
+        imageUrl = `https://cqaaxqruurapltillhzq.supabase.co/storage/v1/object/public/posts-images/${data.path}`
+      } catch (error) {
+        console.error("Error uploading image:", error)
+        alert("Failed to upload image. Please try again.")
+        return
+      }
+    }
+
+    try {
+      // Insert post details into the 'posts' table
+      const { data: postData, error: postError } = await supabase
+        .from('posts')
+        .insert({
+          title,
+          content,
+          category,
+          image_url: imageUrl,
+          user_id: auth.currentUser?.uid // Replace with your user authentication logic
+        })
+
+      if (postError) {
+        console.error("Error creating post:", postError.message)
+        alert("Failed to create post. Please try again.")
+        return
+      }
+
+      alert("Post created successfully!")
+      setPostDetails({ title: '', content: '', category: [], image: null }) // Reset form
+      setIsPostModalOpen(false) // Close the modal after post creation
+    } catch (error) {
+      console.error("Error submitting post:", error)
+      alert("Failed to create post. Please try again.")
+    }
+  }
+
+  const handleAddCategory = (e) => {
+    e.preventDefault()
+    if (currentCategory && !postDetails.category.includes(currentCategory)) {
+      setPostDetails(prev => ({
+        ...prev,
+        category: [...prev.category, currentCategory]
+      }))
+      setCurrentCategory('')
+    }
+  }
+
+  const handleRemoveCategory = (cat) => {
+    setPostDetails(prev => ({
+      ...prev,
+      category: prev.category.filter(c => c !== cat)
+    }))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setShowDropdown(false)
+    setLoading(true)
+    setIsModalOpen(true)
+
+    const trimmedQuery = query.trim()
+    if (trimmedQuery.length === 0) {
+      setSearchResults([])
+      setLoading(false)
+      return
+    }
+
+    const searchTerms = trimmedQuery.split(/\s+/)
+    const results = await handleSearch(searchTerms, trimmedQuery)
+    setSearchResults(results.map(({ relevanceScore, ...profile }) => profile))
+    setLoading(false)
+  }
+
+  const handleInputChange = async (e) => {
+    const inputValue = e.target.value
+    setQuery(inputValue)
+    setShowDropdown(inputValue.length > 0)
+
+    if (inputValue.length === 0) {
+      setSearchResults([])
+      return
+    }
+
+    const searchTerms = inputValue.trim().split(/\s+/)
+    const results = await handleSearch(searchTerms, inputValue.trim())
+    setSearchResults(results.slice(0, 5))
+  }
 
   const handleSearch = async (searchTerms, fullQuery) => {
     if (searchType === 'name') {
@@ -87,52 +222,12 @@ export default function Home() {
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
     }
   }
-
-  const handleInputChange = async (e) => {
-    const inputValue = e.target.value
-    setQuery(inputValue)
-    setShowDropdown(inputValue.length > 0)
-
-    if (inputValue.length === 0) {
-      setSearchResults([])
-      return
-    }
-
-    const searchTerms = inputValue.trim().split(/\s+/)
-    const results = await handleSearch(searchTerms, inputValue.trim())
-    setSearchResults(results.slice(0, 5))
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setShowDropdown(false)
-    setLoading(true)
-    setIsModalOpen(true)
-
-    const trimmedQuery = query.trim()
-    if (trimmedQuery.length === 0) {
-      setSearchResults([])
-      setLoading(false)
-      return
-    }
-
-    const searchTerms = trimmedQuery.split(/\s+/)
-    const results = await handleSearch(searchTerms, trimmedQuery)
-    setSearchResults(results.map(({ relevanceScore, ...profile }) => profile))
-    setLoading(false)
-  }
-
-  const handleLogout = async () => {
-    await signOut(auth)
-    router.push("/login")
-  }
-
   return (
     <div className="min-h-screen flex flex-col text-black">
       <header className="p-4 flex items-center justify-between">
         <div className="w-16"></div>
         <div className="flex-grow flex justify-center">
-          <form onSubmit={handleSubmit} className="relative w-full max-w-2xl">
+        <form onSubmit={handleSubmit} className="relative w-full max-w-2xl">
             {/* <SearchTypeToggle 
               searchType={searchType}
               setSearchType={setSearchType}
@@ -158,16 +253,45 @@ export default function Home() {
             )}
           </form>
         </div>
-        <UserMenu 
+        <UserMenu
           isOpen={isProfileOpen}
           onToggle={() => setIsProfileOpen(!isProfileOpen)}
-          onLogout={handleLogout}
+          onLogout={async () => {
+            await signOut(auth)
+            router.push("/login")
+          }}
         />
       </header>
-
-      <main className="flex-grow flex flex-col items-center justify-center px-4">
-        <h1 className="text-4xl font-bold text-center mb-8">Welcome to Our Website</h1>
-      </main>
+      <div className="w-full flex justify-center">
+        <div className="bg-white rounded-lg shadow p-4 flex items-center gap-4">
+          <img
+            src="https://via.placeholder.com/40"
+            alt="Profile"
+            className="w-10 h-10 rounded-full"
+          />
+          <span className="text-gray-500">Click to start creating a post</span>
+          <button
+            className="ml-auto"
+            onClick={() => setIsPostModalOpen(true)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-6 h-6 text-gray-400"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 5v14m7-7H5"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <main className="flex-grow flex flex-col items-center px-4"></main>
 
       <SearchResultsModal
         isOpen={isModalOpen}
@@ -177,6 +301,78 @@ export default function Home() {
         searchResults={searchResults}
         onProfileClick={(userId) => router.push(`/profile/${userId}`)}
       />
+
+      {/* Post Modal */}
+      {isPostModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="relative bg-white rounded-lg p-6 w-full max-w-2xl">
+            <button
+              className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
+              onClick={() => setIsPostModalOpen(false)}
+            >
+              &times;
+            </button>
+            <form onSubmit={handlePostUpload} className="space-y-8">
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  value={postDetails.title}
+                  onChange={(e) => setPostDetails({ ...postDetails, title: e.target.value })}
+                  placeholder="Post title"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+                <div>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {postDetails.category.map((cat, index) => (
+                      <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm flex items-center">
+                        {cat}
+                        <button type="button" onClick={() => handleRemoveCategory(cat)} className="ml-1 focus:outline-none">
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={currentCategory}
+                      onChange={(e) => setCurrentCategory(e.target.value)}
+                      placeholder="Add a category"
+                      className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCategory}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-r-md"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  value={postDetails.content}
+                  onChange={(e) => setPostDetails({ ...postDetails, content: e.target.value })}
+                  placeholder="Write your content..."
+                  rows="5"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setPostDetails({ ...postDetails, image: e.target.files[0] })}
+                  className="block w-full"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md"
+              >
+                Create Post
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
