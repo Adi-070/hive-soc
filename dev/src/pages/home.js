@@ -124,7 +124,7 @@ export default function Home() {
 
   const handleLogout = async () => {
     await signOut(auth)
-    router.push("/login")
+    router.push("/authpage")
   }
 
   return (
