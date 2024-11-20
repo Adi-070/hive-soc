@@ -252,8 +252,6 @@ export default function Form() {
       throw new Error(`Failed to upload image: ${error.message}`);
     }
   };
-
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);

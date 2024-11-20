@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { auth } from "../../lib/firebaseConfig";
-import { supabase } from "../../lib/supabaseClient";
-import { signOut } from "firebase/auth";
-import Link from "next/link";
-import { Camera, MapPin, Link as LinkIcon, Calendar, Edit2, LogOut, Grid, User2, Mail, Phone, Heart, Bell, Users, KeyRound, ShieldCheck } from 'lucide-react';
+'use client'
 
+import { useEffect, useState } from "react"
+import { useRouter } from "next/router"
+import { auth } from "../../lib/firebaseConfig"
+import { supabase } from "../../lib/supabaseClient"
+import { signOut } from "firebase/auth"
+import Link from "next/link"
 import { Header } from "@/components/dashboard/Header";
 import { ErrorMessage } from "@/components/dashboard/ErrorMessage";
 import { LoadingSpinner } from "@/components/dashboard/LoadingSpinner";
@@ -13,27 +13,33 @@ import { ProfileData } from "@/components/dashboard/ProfileData";
 import { ProfileHeader } from "@/components/dashboard/ProfileHeader";
 import { ProfileInfo } from "@/components/dashboard/ProfileInfo";
 import { FriendRequests } from "@/components/friends/FriendRequests";
+import PostSection from "@/components/posts/PostSection"
 import { FriendsList } from "@/components/friends/FriendsList";
+import { Camera, MapPin, Link as LinkIcon, Calendar, Edit2, LogOut, Grid, User2, Mail, Phone, Heart, Bell, Users, KeyRound, ShieldCheck } from 'lucide-react'
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [friendRequests, setFriendRequests] = useState([]);
-  const [friends, setFriends] = useState([]);
-  const [activeSection, setActiveSection] = useState('profile');  // State to track the active section
-  const router = useRouter();
+  const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [friendRequests, setFriendRequests] = useState([])
+  const [friends, setFriends] = useState([])
+  const router = useRouter()
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
-        setUser(user);
-        await fetchUserProfile(user.uid);
-        await fetchFriendRequests(user.uid);
-        await fetchFriends(user.uid);
+        setUser(user)
+        await fetchUserProfile(user.uid)
+        await fetchFriendRequests(user.uid)
+        await fetchFriends(user.uid)
 
-        // Set up real-time subscription for friend requests
         const friendRequestSubscription = supabase
           .channel('friend_requests')
           .on(
@@ -45,41 +51,41 @@ export default function Dashboard() {
               filter: `friend_id=eq.${user.uid}`,
             },
             () => {
-              fetchFriendRequests(user.uid);
-              fetchFriends(user.uid);
+              fetchFriendRequests(user.uid)
+              fetchFriends(user.uid)
             }
           )
-          .subscribe();
+          .subscribe()
 
         return () => {
-          friendRequestSubscription.unsubscribe();
-        };
+          friendRequestSubscription.unsubscribe()
+        }
       } else {
-        router.push("/login");
+        router.push("/login")
       }
-      setLoading(false);
-    });
+      setLoading(false)
+    })
 
-    return () => unsubscribe();
-  }, [router]);
+    return () => unsubscribe()
+  }, [router])
 
   const fetchUserProfile = async (userId) => {
     try {
-      setLoading(true);
+      setLoading(true)
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .single()
 
-      if (error) throw error;
-      setProfile(data);
+      if (error) throw error
+      setProfile(data)
     } catch (err) {
-      setError("Failed to load profile data. Please try again.");
+      setError("Failed to load profile data. Please try again.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const fetchFriends = async (userId) => {
     try {
@@ -105,31 +111,31 @@ export default function Dashboard() {
           )
         `)
         .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
-        .eq('status', 'accepted');
-  
-      if (error) throw error;
-  
+        .eq('status', 'accepted')
+
+      if (error) throw error
+
       const processedFriends = data.map(friendship => {
         const friendProfile = friendship.user_id === userId 
           ? friendship.friend_profile 
-          : friendship.user_profile;
-  
+          : friendship.user_profile
+
         return {
           ...friendProfile,
           friendshipId: friendship.id
-        };
-      });
-  
+        }
+      })
+
       const uniqueFriends = Array.from(
         new Map(processedFriends.map(friend => [friend.user_id, friend]))
         .values()
-      );
-  
-      setFriends(uniqueFriends);
+      )
+
+      setFriends(uniqueFriends)
     } catch (err) {
-      console.error("Error fetching friends:", err);
+      console.error("Error fetching friends:", err)
     }
-  };
+  }
 
   const fetchFriendRequests = async (userId) => {
     try {
@@ -144,154 +150,156 @@ export default function Dashboard() {
             display_picture
           )`)
         .eq("friend_id", userId)
-        .eq("status", "pending");
+        .eq("status", "pending")
 
-      if (error) throw error;
-      setFriendRequests(data);
+      if (error) throw error
+      setFriendRequests(data)
     } catch (err) {
-      console.error("Error fetching friend requests:", err);
+      console.error("Error fetching friend requests:", err)
     }
-  };
+  }
 
   const formatValue = (value) => {
     if (Array.isArray(value)) {
-      return value.join(", ");
+      return value.join(", ")
     }
-    return value || "Not specified";
-  };
+    return value || "Not specified"
+  }
 
   const handleFriendRequest = async (requestId, status) => {
     try {
       const { error } = await supabase
         .from("friends")
         .update({ status })
-        .eq("id", requestId);
+        .eq("id", requestId)
 
-      if (error) throw error;
+      if (error) throw error
 
       if (user) {
-        await fetchFriendRequests(user.uid);
-        await fetchFriends(user.uid);
+        await fetchFriendRequests(user.uid)
+        await fetchFriends(user.uid)
       }
     } catch (err) {
-      console.error("Error handling friend request:", err);
+      console.error("Error handling friend request:", err)
     }
-  };
+  }
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      router.push("/login");
+      await signOut(auth)
+      router.push("/login")
     } catch (err) {
-      console.error("Error logging out:", err);
+      console.error("Error logging out:", err)
     }
-  };
+  }
 
   const handleEditProfile = () => {
     router.push({
       pathname: "/forms",
       query: { profile: JSON.stringify(profile) },
-    });
-  };
-
-  const handleSidebarClick = (section) => {
-    setActiveSection(section); // Update the active section when a sidebar item is clicked
-  };
-
+    })
+  }
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <Header onLogout={handleLogout} />
-  
-      {/* Main Content */}
-      <div className="pt-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar */}
-            <aside className="w-full lg:w-64 shrink-0">
-              <nav className="space-y-1">
-                <Link
-                  href="#"
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${activeSection === 'profile' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
-                  onClick={() => handleSidebarClick('profile')}
-                >
-                  <User2 className="mr-3 h-4 w-4" />
-                  <span>Profile Settings</span>
-                </Link>
-                <Link
-                  href="#"
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${activeSection === 'password' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
-                  onClick={() => handleSidebarClick('password')}
-                >
-                  <KeyRound className="mr-3 h-4 w-4" />
-                  <span>Password</span>
-                </Link>
-                <Link
-                  href="#"
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${activeSection === 'notifications' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
-                  onClick={() => handleSidebarClick('notifications')}
-                >
-                  <Bell className="mr-3 h-4 w-4" />
-                  <span>Requests</span>
-                </Link>
-                <Link
-                  href="#"
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${activeSection === 'friends' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
-                  onClick={() => handleSidebarClick('friends')}
-                >
-                  <ShieldCheck className="mr-3 h-4 w-4" />
-                  <span>Friends</span>
-                </Link>
-              </nav>
-            </aside>
-  
-            {/* Main Content Area */}
-            <main className="flex-1">
-              {/* Profile Card */}
-              {activeSection === 'profile' && (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center">
+       <Header/>
+        </div>
+      </header>
+
+      <div className="container pt-16">
+        <div className="flex">
+          <Tabs defaultValue="profile" className="flex-1">
+            <div className="flex pl-16">
+           
+              <TabsList className="flex-col h-full w-64 space-y-2 rounded-lg bg-background p-2">
+                <TabsTrigger value="profile" className="justify-start w-full">
+                  <User2 className="mr-2 h-4 w-4" />
+                  Profile
+                </TabsTrigger>
+                <TabsTrigger value="password" className="justify-start w-full">
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Password
+                </TabsTrigger>
+                <TabsTrigger value="notifications" className="justify-start w-full">
+                  <Bell className="mr-2 h-4 w-4" />
+                  Requests
+                </TabsTrigger>
+                <TabsTrigger value="friends" className="justify-start w-full">
+                  <Users className="mr-2 h-4 w-4" />
+                  Friends
+                </TabsTrigger>
+                <TabsTrigger value="posts" className="justify-start w-full">
+                  <Users className="mr-2 h-4 w-4" />
+                  Posts
+                </TabsTrigger>
+              </TabsList>
+          
+              <div className="flex-grow pl-8">
+                <TabsContent value="profile">
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                   <div className="px-6 py-4">
                     <ProfileHeader
                       profile={profile}
                       onEditProfile={handleEditProfile}
                     />
-  
                     <ProfileInfo
                       profile={profile}
                       user={user}
                       onEditProfile={handleEditProfile}
                     />
-  
                     <ProfileData profile={profile} formatValue={formatValue} />
                   </div>
                 </div>
-              )}
-  
-              {/* Friends List */}
-              {activeSection === 'friends' && (
-                <div className="mt-8 space-y-8">
-                  <FriendsList friends={friends} />
-                </div>
-              )}
-  
-              {/* Additional Sections */}
-              {activeSection === 'notifications' && (
-                <div>  <FriendRequests 
+                </TabsContent>
+                <TabsContent value="password">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Password</CardTitle>
+                      <CardDescription>
+                        Change your password here. After saving, you'll be logged out.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Add password change form here */}
+                      <p>Password change functionality to be implemented.</p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="notifications">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Friend Requests</CardTitle>
+                      <div>  <FriendRequests 
                 requests={friendRequests}
                 onAccept={(id) => handleFriendRequest(id, "accepted")}
                 onDecline={(id) => handleFriendRequest(id, "rejected")}
               /></div>
-              )}
-              {activeSection === 'password' && (
-                <div> {/* Password Section Content */} </div>
-              )}
-            </main>
-          </div>
+                    </CardHeader>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="friends">
+               
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Friends</CardTitle>
+                      <div className="mt-8 space-y-8">
+                  <FriendsList friends={friends} />
+                </div>
+                    </CardHeader>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="posts">
+            <PostSection userId={user?.uid} />
+          </TabsContent>
+              </div>
+            </div>
+          </Tabs>
         </div>
       </div>
     </div>
-  );
+  )
 }
