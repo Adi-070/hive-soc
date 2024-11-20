@@ -2,144 +2,80 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from "next/link"
+import { motion } from "framer-motion"
 import { Menu, X } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isVisible, setIsVisible] = useState({})
+  const [featuresInView, setFeaturesInView] = useState(false)
+  const [joinInView, setJoinInView] = useState(false)
+
+  // Refs for sections
   const featuresRef = useRef(null)
-  
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            setIsVisible(prev => ({
-              ...prev,
-              [entry.target.dataset.animation]: true
-            }))
-          }
-        })
-      },
-      { threshold: 0.1 }
-    )
-
-    const elements = document.querySelectorAll('[data-animation]')
-    elements.forEach(el => observer.observe(el))
-
-    return () => observer.disconnect()
-  }, [])
+  const joinRef = useRef(null)
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
   }
 
+  const fadeInUp = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6 }
+  }
+
+  const staggerChildren = {
+    animate: {
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  }
+
+  // Intersection observer setup
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target === featuresRef.current && entry.isIntersecting) {
+            setFeaturesInView(true)
+          }
+          if (entry.target === joinRef.current && entry.isIntersecting) {
+            setJoinInView(true)
+          }
+        })
+      },
+      { threshold: 0.5 } // Trigger when 50% of the section is in view
+    )
+
+    if (featuresRef.current) {
+      observer.observe(featuresRef.current)
+    }
+
+    if (joinRef.current) {
+      observer.observe(joinRef.current)
+    }
+
+    return () => {
+      if (featuresRef.current) {
+        observer.unobserve(featuresRef.current)
+      }
+
+      if (joinRef.current) {
+        observer.unobserve(joinRef.current)
+      }
+    }
+  }, [])
+
   return (
     <div className="flex flex-col min-h-screen">
-      <style jsx global>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-50px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes fadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes scaleIn {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-       .animate-slide-in {
-        opacity: 0;
-        visibility: hidden;
-      }
-        .animate-slide-in.visible {
-        visibility: visible;
-        animation: slideIn 0.6s ease forwards;
-      }
-
-        .animate-fade-up {
-          opacity: 0;
-          animation: fadeUp 0.6s ease forwards;
-        }
-
-        .animate-scale-in {
-          opacity: 0;
-          animation: scaleIn 0.6s ease forwards;
-        }
-
-        .animate-delay-1 {
-          animation-delay: 0.2s;
-        }
-
-        .animate-delay-2 {
-          animation-delay: 0.4s;
-        }
-
-        .animate-delay-3 {
-          animation-delay: 0.6s;
-        }
-
-        .button-hover {
-          transition: transform 0.2s ease;
-        }
-
-        .button-hover:hover {
-          transform: scale(1.05);
-        }
-
-        .button-hover:active {
-          transform: scale(0.95);
-        }
-
-        .menu-slide {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        transform-origin: top;
-        transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
-      }
-
-        .menu-enter {
-          opacity: 1;
-          transform: scaleY(1);
-        }
-
-        .menu-exit {
-        visibility: hidden;
-        opacity: 0;
-        transform: scaleY(0);
-        height: 0;
-      }
-      `}</style>
-
-      <header className="bg-white shadow-md fixed w-full z-50">
+      <header className="bg-background shadow-md fixed w-full z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center">
-            <div className="button-hover">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -154,78 +90,76 @@ export default function Home() {
                   d="M13 10V3L4 14h7v7l9-11h-7z"
                 />
               </svg>
-            </div>
-            <span className="ml-2 text-xl font-bold text-gray-800">HiveSoc</span>
+            </motion.div>
+            <span className="ml-2 text-xl font-bold text-foreground">HiveSoc</span>
           </Link>
 
-          <div className="flex items-center">
-            <nav className="hidden md:block mr-4">
-              <ul className="flex items-center space-x-6">
-                <li>
-                  <Link
-                    href="#features"
-                    className="text-gray-600 hover:text-gray-800 font-medium transition-colors duration-200"
-                  >
+          <div className="flex items-center space-x-4">
+            <NavigationMenu className="hidden md:block">
+              <NavigationMenuList className="space-x-4">
+                <NavigationMenuItem>
+                  <NavigationMenuLink href="#features">
                     Features
-                  </Link>
-                </li>
-                <li>
-                  <Link 
-                    href="#" 
-                    className="text-gray-600 hover:text-gray-800 font-medium transition-colors duration-200"
-                  >
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink href="#">
                     Pricing
-                  </Link>
-                </li>
-                <li>
-                  <Link 
-                    href="#" 
-                    className="text-gray-600 hover:text-gray-800 font-medium transition-colors duration-200"
-                  >
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink href="#">
                     About
-                  </Link>
-                </li>
-              </ul>
-            </nav>
-            
-            <Link
-              href="/authpage"
-              className="button-hover inline-block px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800 font-medium transition-colors duration-200"
-            >
-              Login
-            </Link>
-            
-            <button className="md:hidden ml-4" onClick={toggleMenu}>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            <Button asChild className="ml-4">
+              <Link href="/authpage">Login</Link>
+            </Button>
+
+            <Button variant="ghost" size="icon" className="md:hidden ml-4" onClick={toggleMenu}>
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+            </Button>
           </div>
         </div>
 
-        <div className={`menu-slide ${isMenuOpen ? 'menu-enter' : 'menu-exit'} md:hidden`}>
-          <nav className="bg-white">
+        <motion.div
+          className="md:hidden"
+          initial={false}
+          animate={isMenuOpen ? "open" : "closed"}
+          variants={{
+            open: { opacity: 1, height: "auto" },
+            closed: { opacity: 0, height: 0 }
+          }}
+        >
+        <nav className="bg-white text-black bg-opacity-90">
+
+
             <ul className="flex flex-col space-y-2 px-4 py-2">
               <li>
                 <Link
                   href="#features"
-                  className="block text-gray-600 hover:text-gray-800 font-medium"
+                  className="block text-foreground hover:text-primary font-medium"
                   onClick={toggleMenu}
                 >
                   Features
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="#" 
-                  className="block text-gray-600 hover:text-gray-800 font-medium"
+                <Link
+                  href="#"
+                  className="block text-foreground hover:text-primary font-medium"
                   onClick={toggleMenu}
                 >
                   Pricing
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="#" 
-                  className="block text-gray-600 hover:text-gray-800 font-medium"
+                <Link
+                  href="#"
+                  className="block text-foreground hover:text-primary font-medium"
                   onClick={toggleMenu}
                 >
                   About
@@ -233,53 +167,55 @@ export default function Home() {
               </li>
             </ul>
           </nav>
-        </div>
+        </motion.div>
       </header>
 
       <main className="flex-grow pt-24">
-        <section className="bg-gradient-to-br from-blue-50 to-purple-50 py-16 md:py-28">
-          <div 
-            className={`container mx-auto px-4 text-center animate-fade-up ${
-              isVisible['hero'] ? 'visible' : ''
-            }`}
-            data-animation="hero"
-          >
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-800 mb-4">
-              Connect with Like-Minded People
-            </h1>
-            <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-3xl mx-auto">
-              Discover and connect with people who share your passions. Join HiveSoc
-              today and start meaningful conversations.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Link
-                href="/signup"
-                className="button-hover inline-block bg-white text-black px-8 py-4 rounded-md font-medium hover:bg-primary-dark transition duration-200 shadow-lg"
-              >
-                Get Started
-              </Link>
-              <Link
-                href="/learn-more"
-                className="button-hover inline-block bg-white text-primary px-8 py-4 rounded-md font-medium border border-primary hover:bg-primary-50 transition duration-200 shadow-lg"
-              >
-                Learn More
-              </Link>
-            </div>
-          </div>
-        </section>
+      <section className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 relative">
+  <motion.div
+    className="container mx-auto px-4 text-center transform -translate-y-10" // This moves the text upward
+    initial="initial"
+    animate="animate"
+    variants={fadeInUp}
+  >
+    <h1 className="text-4xl sm:text-5xl md:text-6xl  lg:text-7xl font-bold text-foreground mb-4">
+      Connect with Like-Minded People
+    </h1>
+    <br/>
+    <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-3xl mx-auto">
+      Discover and connect with people who share your passions. Join HiveSoc
+      today and start meaningful conversations.
+    </p>
+    <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+      <Button asChild size="lg">
+        <Link href="/signup">Get Started</Link>
+      </Button>
+      <Button asChild variant="outline" size="lg">
+        <Link href="/learn-more">Learn More</Link>
+      </Button>
+    </div>
+  </motion.div>
+</section>
 
-        <section id="features" className="py-16 md:py-20" ref={featuresRef}>
+
+
+        <section id="features" ref={featuresRef} className="py-16 md:py-20">
           <div className="container mx-auto px-4">
-            <h2 
-              className={`text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-12 text-center animate-scale-in ${
-                isVisible['features-title'] ? 'visible' : ''
-              }`}
-              data-animation="features-title"
+            <motion.h2
+              className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-12 text-center"
+              initial="initial"
+              animate={featuresInView ? "animate" : "initial"}
+              variants={fadeInUp}
             >
               Key Features
-            </h2>
-            <div className="grid gap-8 md:grid-cols-3">
-              {[
+            </motion.h2>
+            <motion.div
+              className="grid gap-8 md:grid-cols-3"
+              variants={staggerChildren}
+              initial="initial"
+              animate={featuresInView ? "animate" : "initial"}
+            >
+                {[
                 {
                   title: "Find Your Tribe",
                   description: "Connect with people who share your interests and passions.",
@@ -312,65 +248,58 @@ export default function Home() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-2.78-2.24-5-5-5H7c-2.76 0-5 2.24-5 5v2"
                     />
                   )
                 }
               ].map((feature, index) => (
-                <div
+                <motion.div
                   key={index}
-                  className={`bg-white p-6 rounded-2xl shadow-lg animate-slide-in animate-delay-${index + 1} ${
-                    isVisible[`feature-${index}`] ? 'visible' : ''
-                  }`}
-                  data-animation={`feature-${index}`}
+                  className="flex flex-col items-center bg-white rounded-lg shadow-md p-6"
+                  variants={fadeInUp}
                 >
-                  <div className="flex flex-col items-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      className="h-12 w-12 text-primary mb-4"
-                    >
-                      {feature.icon}
-                    </svg>
-                    <h3 className="text-xl font-bold mb-2 text-gray-800">{feature.title}</h3>
-                  </div>
-                  <p className="text-center text-gray-600">{feature.description}</p>
-                </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    className="h-12 w-12 text-primary mb-4"
+                  >
+                    {feature.icon}
+                  </svg>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">
+                    {feature.title}
+                  </h3>
+                  <p className="text-muted-foreground text-center">{feature.description}</p>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
-        <section className="bg-gradient-to-br from-blue-50 to-purple-50 py-16 md:py-20">
-          <div 
-            className={`container mx-auto px-4 text-center animate-fade-up ${
-              isVisible['cta'] ? 'visible' : ''
-            }`}
-            data-animation="cta"
-          >
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
-              Join the Conversation
-            </h2>
-            <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-              Start connecting with like-minded individuals and build meaningful
-              relationships. Sign up now and get started for free!
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Link
-                href="/signup"
-                className="button-hover inline-block bg-white text-black px-8 py-4 rounded-md font-medium hover:bg-primary-dark transition duration-200 shadow-lg"
-              >
-                Sign up
-              </Link>
-              <Link
-                href="/learn-more"
-                className="button-hover inline-block bg-white text-primary px-8 py-4 rounded-md font-medium border border-primary hover:bg-primary-50 transition duration-200 shadow-lg"
-              >
-                Learn More
-              </Link>
-            </div>
+        <section ref={joinRef} className="py-16 md:py-20 bg-gray-100">
+          <div className="container mx-auto px-4 text-center">
+            <motion.h2
+              className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-12"
+              initial="initial"
+              animate={joinInView ? "animate" : "initial"}
+              variants={fadeInUp}
+            >
+              Join Us Today!
+            </motion.h2>
+            <motion.div
+              className="flex flex-col sm:flex-row justify-center gap-4"
+              initial="initial"
+              animate={joinInView ? "animate" : "initial"}
+              variants={fadeInUp}
+            >
+              <Button size="lg" className="w-full sm:w-auto">
+                <Link href="/signup" className="w-full text-center">Sign Up Now</Link>
+              </Button>
+              <Button size="lg" className="w-full sm:w-auto bg-white text-black border border-gray-300 hover:bg-gray-100">
+                <Link href="/learn-more" className="w-full text-center">Learn More</Link>
+              </Button>
+            </motion.div>
           </div>
         </section>
       </main>
