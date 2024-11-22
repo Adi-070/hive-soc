@@ -199,23 +199,48 @@ export default function Dashboard() {
       query: { profile: JSON.stringify(profile) },
     })
   }
+
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
 
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center">
-       <Header/>
+        <div className="container flex h-14 items-center px-4 sm:px-6">
+          <Header/>
         </div>
       </header>
 
-      <div className="container pt-16">
+      <div className="container pt-8 sm:pt-16 px-4 sm:px-6">
         <div className="flex">
-          <Tabs defaultValue="profile" className="flex-1">
-            <div className="flex pl-16">
-           
-              <TabsList className="flex-col h-full w-64 space-y-2 rounded-lg bg-background p-2">
+          <Tabs defaultValue="profile" className="w-full">
+            <div className="flex flex-col md:flex-row md:pl-8">
+              {/* Mobile Tab List */}
+              <TabsList className="flex md:hidden h-auto w-full space-x-2 rounded-lg bg-background p-2 mb-4 overflow-x-auto">
+                <TabsTrigger value="profile" className="flex-1 min-w-[80px]">
+                  <User2 className="h-4 w-4 md:mr-2" />
+                  <span className="hidden sm:inline">Profile</span>
+                </TabsTrigger>
+                <TabsTrigger value="password" className="flex-1 min-w-[80px]">
+                  <KeyRound className="h-4 w-4 md:mr-2" />
+                  <span className="hidden sm:inline">Password</span>
+                </TabsTrigger>
+                <TabsTrigger value="notifications" className="flex-1 min-w-[80px]">
+                  <Bell className="h-4 w-4 md:mr-2" />
+                  <span className="hidden sm:inline">Requests</span>
+                </TabsTrigger>
+                <TabsTrigger value="friends" className="flex-1 min-w-[80px]">
+                  <Users className="h-4 w-4 md:mr-2" />
+                  <span className="hidden sm:inline">Friends</span>
+                </TabsTrigger>
+                <TabsTrigger value="posts" className="flex-1 min-w-[80px]">
+                  <Grid className="h-4 w-4 md:mr-2" />
+                  <span className="hidden sm:inline">Posts</span>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Desktop Tab List */}
+              <TabsList className="hidden md:flex flex-col h-full w-64 space-y-2 rounded-lg bg-background p-2">
                 <TabsTrigger value="profile" className="justify-start w-full">
                   <User2 className="mr-2 h-4 w-4" />
                   Profile
@@ -233,30 +258,31 @@ export default function Dashboard() {
                   Friends
                 </TabsTrigger>
                 <TabsTrigger value="posts" className="justify-start w-full">
-                  <Users className="mr-2 h-4 w-4" />
+                  <Grid className="mr-2 h-4 w-4" />
                   Posts
                 </TabsTrigger>
               </TabsList>
           
-              <div className="flex-grow pl-8">
+              <div className="flex-grow md:pl-8 w-full">
                 <TabsContent value="profile">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="px-6 py-4">
-                    <ProfileHeader
-                      profile={profile}
-                      onEditProfile={handleEditProfile}
-                    />
-                    <ProfileInfo
-                      profile={profile}
-                      user={user}
-                      onEditProfile={handleEditProfile}
-                    />
-                    <ProfileData profile={profile} formatValue={formatValue} />
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="px-4 sm:px-6 py-4">
+                      <ProfileHeader
+                        profile={profile}
+                        onEditProfile={handleEditProfile}
+                      />
+                      <ProfileInfo
+                        profile={profile}
+                        user={user}
+                        onEditProfile={handleEditProfile}
+                      />
+                      <ProfileData profile={profile} formatValue={formatValue} />
+                    </div>
                   </div>
-                </div>
                 </TabsContent>
+
                 <TabsContent value="password">
-                  <Card>
+                  <Card className="mx-auto max-w-2xl">
                     <CardHeader>
                       <CardTitle>Password</CardTitle>
                       <CardDescription>
@@ -264,37 +290,42 @@ export default function Dashboard() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {/* Add password change form here */}
                       <p>Password change functionality to be implemented.</p>
                     </CardContent>
                   </Card>
                 </TabsContent>
+
                 <TabsContent value="notifications">
-                  <Card>
+                  <Card className="mx-auto max-w-2xl">
                     <CardHeader>
                       <CardTitle>Friend Requests</CardTitle>
-                      <div>  <FriendRequests 
-                requests={friendRequests}
-                onAccept={(id) => handleFriendRequest(id, "accepted")}
-                onDecline={(id) => handleFriendRequest(id, "rejected")}
-              /></div>
+                      <div>
+                        <FriendRequests 
+                          requests={friendRequests}
+                          onAccept={(id) => handleFriendRequest(id, "accepted")}
+                          onDecline={(id) => handleFriendRequest(id, "rejected")}
+                        />
+                      </div>
                     </CardHeader>
                   </Card>
                 </TabsContent>
+
                 <TabsContent value="friends">
-               
-                  <Card>
+                  <Card className="mx-auto max-w-2xl">
                     <CardHeader>
                       <CardTitle>Friends</CardTitle>
                       <div className="mt-8 space-y-8">
-                  <FriendsList friends={friends} />
-                </div>
+                        <FriendsList friends={friends} />
+                      </div>
                     </CardHeader>
                   </Card>
                 </TabsContent>
+
                 <TabsContent value="posts">
-            <PostSection userId={user?.uid} />
-          </TabsContent>
+                  <div className="max-w-2xl mx-auto">
+                    <PostSection userId={user?.uid} />
+                  </div>
+                </TabsContent>
               </div>
             </div>
           </Tabs>
