@@ -23,24 +23,56 @@ export default function PostsSection({ userId }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [likedPosts, setLikedPosts] = useState(new Set());
 
   useEffect(() => {
     if (userId) {
       fetchUserPosts(userId);
       fetchUserProfile(userId);
+      fetchUserLikes(userId);
     }
   }, [userId]);
+
+  const fetchUserLikes = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from("likes")
+        .select("post_id")
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      setLikedPosts(new Set(data.map(like => like.post_id)));
+    } catch (err) {
+      console.error("Failed to fetch user likes:", err);
+    }
+  };
 
   const fetchUserPosts = async (userId) => {
     try {
       setLoading(true);
+      
       const { data, error } = await supabase
         .from("posts")
-        .select("id, title, content, image_url, category, created_at")
+        .select(`
+          id, 
+          title, 
+          content, 
+          image_url, 
+          category, 
+          created_at,
+          likes: likes!post_id(count)
+        `)
         .eq("user_id", userId);
 
       if (error) throw error;
-      setPosts(data);
+
+      const transformedPosts = data.map(post => ({
+        ...post,
+        like_count: post.likes?.[0]?.count || 0
+      }));
+
+      setPosts(transformedPosts);
     } catch (err) {
       setError("Failed to load posts. Please try again.");
     } finally {
@@ -60,6 +92,57 @@ export default function PostsSection({ userId }) {
       setProfile(data);
     } catch (err) {
       setError("Failed to load user profile. Please try again.");
+    }
+  };
+
+  const handleLike = async (postId) => {
+    try {
+      const isCurrentlyLiked = likedPosts.has(postId);
+      
+      // Optimistic UI update
+      setLikedPosts(prev => {
+        const newSet = new Set(prev);
+        if (isCurrentlyLiked) {
+          newSet.delete(postId);
+        } else {
+          newSet.add(postId);
+        }
+        return newSet;
+      });
+
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId
+            ? {
+                ...post,
+                like_count: post.like_count + (isCurrentlyLiked ? -1 : 1)
+              }
+            : post
+        )
+      );
+
+      if (isCurrentlyLiked) {
+        // Unlike
+        await supabase
+          .from("likes")
+          .delete()
+          .eq("post_id", postId)
+          .eq("user_id", userId);
+      } else {
+        // Like
+        await supabase
+          .from("likes")
+          .insert({ post_id: postId, user_id: userId });
+      }
+
+      // Fetch fresh data to ensure consistency
+      await fetchUserPosts(userId);
+      await fetchUserLikes(userId);
+    } catch (err) {
+      console.error("Failed to like/unlike post:", err);
+      // Revert optimistic updates on error
+      await fetchUserPosts(userId);
+      await fetchUserLikes(userId);
     }
   };
 
@@ -151,13 +234,19 @@ export default function PostsSection({ userId }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground hover:text-primary hover:bg-primary/10 text-xs sm:text-sm px-2 sm:px-4 flex-1 sm:flex-none"
-                onClick={() => handleInteraction("like", post.id)}
+                className={`text-muted-foreground hover:text-primary hover:bg-primary/10 text-xs sm:text-sm px-2 sm:px-4 flex-1 sm:flex-none ${
+                  likedPosts.has(post.id) ? "text-blue-500" : ""
+                }`}
+                onClick={() => handleLike(post.id)}
               >
-                <Heart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                <span>5</span>
+                <Heart 
+                  className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 ${
+                    likedPosts.has(post.id) ? "fill-current" : ""
+                  }`} 
+                />
+                <span>{post.like_count || 0}</span>
               </Button>
-
+                
               <Button
                 variant="ghost"
                 size="sm"
