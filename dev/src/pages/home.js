@@ -351,7 +351,7 @@ export default function Home() {
 
       {/* Friends Posts Section */}
       <div className="w-full max-w-2xl mx-auto mt-6">
-        <h2 className="text-xl font-semibold mb-4 text-white">Friends' Posts</h2>
+        <h2 className="text-xl font-semibold mb-4 text-white">Friends&apos; Posts</h2>
         {friendsPosts.length === 0 ? (
           <p className="text-gray-500">No posts from friends yet</p>
         ) : (
@@ -396,7 +396,7 @@ export default function Home() {
                  
                   <div className="flex flex-wrap gap-1 sm:gap-2">
                     {post.category && post.category.length > 0 ? (
-                      post.category.split(',').map((cat, index) => (
+                      post.category.map((cat, index) => (
                         <Badge
                           key={index}
                           variant="secondary"
