@@ -51,6 +51,8 @@ export default function Home() {
   const router = useRouter()
   const [friendsPosts, setFriendsPosts] = useState([])
 
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true)
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isModalOpen && !event.target.closest('.modal-content')) {
@@ -102,9 +104,23 @@ export default function Home() {
 
   // Fetch friends' posts when component mounts
   useEffect(() => {
-    if (auth.currentUser) {
-      fetchFriendsPosts()
-    }
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        setIsLoadingPosts(true)
+        try {
+          await fetchFriendsPosts()
+        } catch (error) {
+          console.error("Error fetching posts:", error)
+        } finally {
+          setIsLoadingPosts(false)
+        }
+      } else {
+        setFriendsPosts([])
+        setIsLoadingPosts(false)
+      }
+    })
+
+    return () => unsubscribe()
   }, [])
 
   const handlePostUpload = async (e) => {
@@ -352,9 +368,18 @@ export default function Home() {
       {/* Friends Posts Section */}
       <div className="w-full max-w-2xl mx-auto mt-6">
         <h2 className="text-xl font-semibold mb-4 text-white">Friends&apos; Posts</h2>
-        {friendsPosts.length === 0 ? (
-          <p className="text-gray-500">No posts from friends yet</p>
-        ) : (
+        {isLoadingPosts ? (
+        <div className="text-center py-4">
+          <div className="flex items-center justify-center min-h-screen">
+      <div className="space-y-4 text-center">
+        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className="text-gray-600">Loading posts..</p>
+      </div>
+    </div>
+        </div>
+      ) : friendsPosts.length === 0 ? (
+        <p className="text-gray-500">No posts from friends yet</p>
+      ) : (
           <div className="space-y-4">
             {friendsPosts.map((post) => (
               <Card key={post.id} className="border-b last:border-b-0 shadow-sm hover:shadow-md transition-shadow">
