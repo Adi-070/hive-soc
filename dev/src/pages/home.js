@@ -10,6 +10,18 @@ import { UserMenu } from '../components/UserMenu/Usermenu'
 import { SearchResultsModal } from '../components/SearchResults/SearchResultsModal'
 import { X } from 'lucide-react'
 import { calculateRelevanceScore } from '../../lib/searchUtils'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { FriendsPostInteractions } from '@/components/posts/FriendsPostInteractions'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
@@ -37,6 +49,7 @@ export default function Home() {
   const [postDetails, setPostDetails] = useState({ title: '', content: '', category: [], image: null })
   const [currentCategory, setCurrentCategory] = useState('')
   const router = useRouter()
+  const [friendsPosts, setFriendsPosts] = useState([])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -51,6 +64,49 @@ export default function Home() {
     }
   }, [isModalOpen])
   // Handle post creation
+
+  const fetchFriendsPosts = async () => {
+    try {
+      // First, get the current user's friends
+      const { data: friendsData, error: friendsError } = await supabase
+        .from('friends')
+        .select('friend_id')
+        .eq('user_id', auth.currentUser?.uid)
+
+      if (friendsError) {
+        console.error("Error fetching friends:", friendsError)
+        return
+      }
+
+      // Extract friend IDs
+      const friendIds = friendsData.map(friendship => friendship.friend_id)
+
+      // Fetch posts from friends
+      const { data: postsData, error: postsError } = await supabase
+        .from('posts')
+        .select('*, profiles(*),likes: likes!post_id(count)')
+        .in('user_id', friendIds)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (postsError) {
+        console.error("Error fetching friends' posts:", postsError)
+        return
+      }
+
+      setFriendsPosts(postsData)
+    } catch (error) {
+      console.error("Error in fetchFriendsPosts:", error)
+    }
+  }
+
+  // Fetch friends' posts when component mounts
+  useEffect(() => {
+    if (auth.currentUser) {
+      fetchFriendsPosts()
+    }
+  }, [])
+
   const handlePostUpload = async (e) => {
     e.preventDefault()
     const { title, content, category, image } = postDetails
@@ -292,6 +348,90 @@ export default function Home() {
         </div>
       </div>
       <main className="flex-grow flex flex-col items-center px-4"></main>
+
+      {/* Friends Posts Section */}
+      <div className="w-full max-w-2xl mx-auto mt-6">
+        <h2 className="text-xl font-semibold mb-4 text-white">Friends' Posts</h2>
+        {friendsPosts.length === 0 ? (
+          <p className="text-gray-500">No posts from friends yet</p>
+        ) : (
+          <div className="space-y-4">
+            {friendsPosts.map((post) => (
+              <Card key={post.id} className="border-b last:border-b-0 shadow-sm hover:shadow-md transition-shadow">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center sm:space-x-4 pb-2">
+                  <div className="flex items-center space-x-4 sm:space-x-0">
+                    <Avatar className="w-10 h-10 sm:w-12 sm:h-12">
+                      <AvatarImage
+                        src={post.profiles.display_picture || "/placeholder-avatar.png"}
+                        alt={post.profiles.userName || "User"}
+                      />
+                      <AvatarFallback>
+                        {post.profiles.userName?.[0]?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1 mt-3 sm:mt-0">
+                    <CardTitle className="text-sm sm:text-base font-medium">
+                      {post.profiles.userName || "Unknown User"}
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm text-muted-foreground truncate">
+                      {post.title}
+                    </CardDescription>
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-0">
+                    {post.created_at
+                      ? new Date(post.created_at.replace(" ", "T")).toLocaleDateString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )
+                      : "Unknown date"}
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm sm:text-base text-gray-700">{post.content}</p>
+                 
+                  <div className="flex flex-wrap gap-1 sm:gap-2">
+                    {post.category && post.category.length > 0 ? (
+                      post.category.split(',').map((cat, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className="text-xs sm:text-sm px-2 py-1"
+                        >
+                          {cat.trim()}
+                        </Badge>
+                      ))
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className="text-xs sm:text-sm px-2 py-1"
+                      >
+                        Uncategorized
+                      </Badge>
+                    )}
+                  </div>
+                  {post.image_url && (
+                    <div className="relative w-full">
+                      <img
+                        src={post.image_url}
+                        alt="Post Image"
+                        className="w-full h-auto rounded-md object-cover max-h-[400px]"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+                <FriendsPostInteractions posts={[post] || []} />
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
 
       <SearchResultsModal
         isOpen={isModalOpen}
