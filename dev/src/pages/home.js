@@ -53,6 +53,30 @@ export default function Home() {
 
   const [isLoadingPosts, setIsLoadingPosts] = useState(true)
 
+  const [userProfile, setUserProfile] = useState(null)
+  
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("user_id", user.uid)
+            .single()
+
+          if (error) throw error
+          setUserProfile(data)
+        } catch (err) {
+          console.error("Error fetching user profile:", err)
+        }
+      }
+    })
+
+    return () => unsubscribe()
+  }, [])
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isModalOpen && !event.target.closest('.modal-content')) {
@@ -332,6 +356,7 @@ export default function Home() {
             await signOut(auth)
             router.push("/authpage")
           }}
+          user={userProfile}
         />
       </header>
       <div className="w-full flex justify-center">
