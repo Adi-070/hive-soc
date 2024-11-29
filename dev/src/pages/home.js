@@ -21,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FriendsPostInteractions } from '@/components/posts/FriendsPostInteractions'
+import { PostInteractions } from '@/components/posts/PostInteractions'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
@@ -475,7 +475,7 @@ export default function Home() {
                     </div>
                   )}
                 </CardContent>
-                <FriendsPostInteractions posts={[post] || []} />
+                <PostInteractions posts={[post] || []} setPosts={setFriendsPosts} />
               </Card>
             ))}
           </div>

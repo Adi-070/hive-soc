@@ -8,17 +8,12 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
-  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingSpinner } from "@/components/dashboard/LoadingSpinner";
 import { ErrorMessage } from "@/components/dashboard/ErrorMessage";
-import { Heart, MessageCircle, Share2,Send } from "lucide-react";
-import { ProfileHeader } from "../dashboard/ProfileHeader";
-import { Input } from "@/components/ui/input";
-import { AnimatePresence, motion } from "framer-motion";
+import { PostInteractions } from "./PostInteractions";
 
 export default function PostsSection({ userId }) {
   const [posts, setPosts] = useState([]);
@@ -124,9 +119,9 @@ export default function PostsSection({ userId }) {
         .from("likes")
         .select("post_id")
         .eq("user_id", userId);
-
+  
       if (error) throw error;
-
+  
       setLikedPosts(new Set(data.map(like => like.post_id)));
     } catch (err) {
       console.error("Failed to fetch user likes:", err);
@@ -146,18 +141,13 @@ export default function PostsSection({ userId }) {
           image_url, 
           category, 
           created_at,
-          likes: likes!post_id(count)
+          like_count
         `)
         .eq("user_id", userId);
-
+  
       if (error) throw error;
-
-      const transformedPosts = data.map(post => ({
-        ...post,
-        like_count: post.likes?.[0]?.count || 0
-      }));
-
-      setPosts(transformedPosts);
+  
+      setPosts(data);
     } catch (err) {
       setError("Failed to load posts. Please try again.");
     } finally {
@@ -184,49 +174,46 @@ export default function PostsSection({ userId }) {
     try {
       const isCurrentlyLiked = likedPosts.has(postId);
       
-      // Optimistic UI update
-      setLikedPosts(prev => {
-        const newSet = new Set(prev);
-        if (isCurrentlyLiked) {
-          newSet.delete(postId);
-        } else {
-          newSet.add(postId);
-        }
-        return newSet;
-      });
-
-      setPosts(prevPosts =>
-        prevPosts.map(post =>
-          post.id === postId
-            ? {
-                ...post,
-                like_count: post.like_count + (isCurrentlyLiked ? -1 : 1)
-              }
-            : post
-        )
-      );
-
+      // Update likes table
       if (isCurrentlyLiked) {
-        // Unlike
         await supabase
           .from("likes")
           .delete()
           .eq("post_id", postId)
           .eq("user_id", userId);
       } else {
-        // Like
         await supabase
           .from("likes")
           .insert({ post_id: postId, user_id: userId });
       }
-
-      // Fetch fresh data to ensure consistency
-      await fetchUserPosts(userId);
-      await fetchUserLikes(userId);
+  
+      // Optimistic UI update
+      setLikedPosts(prev => {
+        const newSet = new Set(prev);
+        isCurrentlyLiked ? newSet.delete(postId) : newSet.add(postId);
+        return newSet;
+      });
+  
+      // Update posts state with the new like count directly from the likes table
+      const { data: likeCountData, error: likeCountError } = await supabase
+        .from("posts")
+        .select("like_count")
+        .eq("id", postId)
+        .single();
+  
+      if (likeCountError) throw likeCountError;
+  
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId
+            ? { ...post, like_count: likeCountData.like_count }
+            : post
+        )
+      );
+  
     } catch (err) {
       console.error("Failed to like/unlike post:", err);
-      // Revert optimistic updates on error
-      await fetchUserPosts(userId);
+      // Restore previous state
       await fetchUserLikes(userId);
     }
   };
@@ -315,120 +302,7 @@ export default function PostsSection({ userId }) {
               )}
             </CardContent>
 
-            <CardFooter className="flex flex-wrap justify-between pt-2 gap-1 sm:gap-2 border-t">
-            <div className="flex flex-wrap justify-between w-full gap-1 sm:gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`text-muted-foreground hover:text-primary hover:bg-primary/10 text-xs sm:text-sm px-2 sm:px-4 flex-1 sm:flex-none ${
-                  likedPosts.has(post.id) ? "text-blue-500" : ""
-                }`}
-                onClick={() => handleLike(post.id)}
-              >
-                <Heart 
-                  className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 ${
-                    likedPosts.has(post.id) ? "fill-current" : ""
-                  }`} 
-                />
-                <span>{post.like_count || 0}</span>
-              </Button>
-                
-              <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`text-muted-foreground hover:text-primary hover:bg-primary/10 text-xs sm:text-sm px-2 sm:px-4 flex-1 sm:flex-none ${
-                    openComments.has(post.id) ? "text-blue-500" : ""
-                  }`}
-                  onClick={() => toggleComments(post.id)}
-                >
-                  <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                  <span>{comments[post.id]?.length || 0}</span>
-                </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-primary hover:bg-primary/10 text-xs sm:text-sm px-2 sm:px-4 flex-1 sm:flex-none"
-                onClick={() => handleInteraction("share", post.id)}
-              >
-                <Share2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                <span>Share</span>
-              </Button>
-              </div>
-
-              <AnimatePresence>
-                {openComments.has(post.id) && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="w-full overflow-hidden"
-                  >
-                    <div className="space-y-4 pt-2">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Add a comment..."
-                          value={newComments[post.id] || ""}
-                          onChange={(e) => 
-                            setNewComments(prev => ({
-                              ...prev,
-                              [post.id]: e.target.value
-                            }))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              handleAddComment(post.id);
-                            }
-                          }}
-                          className="flex-1"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleAddComment(post.id)}
-                          disabled={!newComments[post.id]?.trim()}
-                        >
-                          <Send className="w-4 h-4" />
-                        </Button>
-                      </div>
-
-                      <div className="space-y-4 max-h-96 overflow-y-auto">
-                        {comments[post.id]?.map((comment) => (
-                          <motion.div
-                            key={comment.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex gap-3 items-start"
-                          >
-                            <Avatar className="w-8 h-8">
-                              <AvatarImage
-                                src={comment.profiles.display_picture || "/placeholder-avatar.png"}
-                                alt={comment.profiles.userName}
-                              />
-                              <AvatarFallback>
-                                {comment.profiles.userName?.[0]?.toUpperCase() || "U"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-sm">
-                                  {comment.profiles.userName}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(comment.created_at).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <p className="text-sm">{comment.content}</p>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </CardFooter>
+            <PostInteractions posts={[post] || []} setPosts={setPosts} />
           </Card>
         ))
       ) : (

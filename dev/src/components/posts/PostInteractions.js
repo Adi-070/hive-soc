@@ -7,13 +7,11 @@ import { Heart, MessageCircle, Share2,Send } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 
-
-export const FriendsPostInteractions = ({ posts = [] }) => {
+export const PostInteractions = ({ posts = [], setPosts }) => {
   const [comments, setComments] = useState({})
   const [newComments, setNewComments] = useState({})
   const [likedPosts, setLikedPosts] = useState(new Set())
   const [openComments, setOpenComments] = useState(new Set())
-  const [likeCounts, setLikeCounts] = useState({})
   const userId = auth.currentUser?.uid
 
   useEffect(() => {
@@ -21,10 +19,6 @@ export const FriendsPostInteractions = ({ posts = [] }) => {
       fetchUserLikes(userId)
     }
   }, [userId])
-
-  useEffect(() => {
-    posts.forEach(post => fetchLikesCount(post.id))
-  }, [posts])
 
   const fetchComments = async (postId) => {
     try {
@@ -121,33 +115,29 @@ export const FriendsPostInteractions = ({ posts = [] }) => {
     }
   }
 
-  const fetchLikesCount = async (postId) => {
-    try {
-      const { count, error } = await supabase
-        .from("likes")
-        .select("*", { count: 'exact' })
-        .eq("post_id", postId)
-  
-      console.log(`Likes count for post ${postId}:`, {
-        count,
-        error
-      })
-  
-      if (error) throw error
-  
-      setLikeCounts(prev => ({
-        ...prev,
-        [postId]: count || 0
-      }))
-    } catch (err) {
-      console.error(`Failed to fetch likes for post ${postId}:`, err)
-    }
-  }
-
   const handleLike = async (postId) => {
-    try {
+
+    const { data: postData } = await supabase
+        .from("posts")
+        .select("like_count")
+        .eq("id", postId)
+        .single()
+
+      const currentLikeCount = postData.like_count || 0
       const isCurrentlyLiked = likedPosts.has(postId)
+
+      setLikedPosts((prev) => {
+        const newSet = new Set(prev);
+        if (isCurrentlyLiked) {
+          newSet.delete(postId);
+        } else {
+          newSet.add(postId);
+        }
+        return newSet;
+      });
     
+    try {
+
       if (isCurrentlyLiked) {
         // Unlike - remove like record
         await supabase
@@ -155,13 +145,27 @@ export const FriendsPostInteractions = ({ posts = [] }) => {
           .delete()
           .eq("post_id", postId)
           .eq("user_id", userId)
+
+        // Decrement like_count
+        await supabase
+          .from("posts")
+          .update({ like_count: Math.max(0, currentLikeCount - 1)})
+          .eq("id", postId)
+
       } else {
         // Like - insert like record
         await supabase
           .from("likes")
           .insert({ post_id: postId, user_id: userId })
+
+        // Increment like_count
+        await supabase
+          .from("posts")
+          .update({ like_count: currentLikeCount + 1 })
+          .eq("id", postId)
       }
-    
+      console.log(postData.like_count)
+
       // Optimistic UI update
       setLikedPosts(prev => {
         const newSet = new Set(prev)
@@ -171,15 +175,33 @@ export const FriendsPostInteractions = ({ posts = [] }) => {
           newSet.add(postId)
         }
         return newSet
-      })
+      });
+
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post.id === postId
+            ? {
+                ...post,
+                like_count: post.like_count + (isCurrentlyLiked ? -1 : 1)
+              }
+            : post
+        )
+      );
     
-      // Immediately refresh likes count for the specific post
-      await fetchLikesCount(postId)
-      
+    
       // Fetch fresh likes data
       await fetchUserLikes(userId)
     } catch (err) {
       console.error("Failed to like/unlike post:", err)
+      setLikedPosts(prev => {
+        const newSet = new Set(prev)
+        if (isCurrentlyLiked) {
+          newSet.add(postId)
+        } else {
+          newSet.delete(postId)
+        }
+        return newSet
+      })
     }
   }
   
@@ -199,11 +221,11 @@ export const FriendsPostInteractions = ({ posts = [] }) => {
                 onClick={() => handleLike(post.id)}
               >
                 <Heart 
-                  className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 ${
-                    likedPosts.has(post.id) ? "fill-current" : ""
-                  }`} 
-                />
-                <span>{likeCounts[post.id] || 0}</span>
+                className={`w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 ${
+                  likedPosts.has(post.id) ? "fill-current" : ""
+                }`} 
+              />
+              <span>{post.like_count || 0}</span>
               </Button>
                 
               <Button
