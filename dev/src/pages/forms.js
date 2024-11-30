@@ -3,7 +3,7 @@ import axios from "axios";
 import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabaseClient";
 import { auth } from "../../lib/firebaseConfig";
-import { User2, MapPin, Calendar, Tag, X, Plus } from "lucide-react";
+import { User2, MapPin, Calendar, Tag, X, Plus, Navigation } from "lucide-react";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
@@ -38,18 +38,21 @@ export default function Form() {
   const [imageFile, setImageFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [locationError, setLocationError] = useState(null);
+
   // Dropdown data
-  const [countries, setCountries] = useState([]);
-  const [states, setStates] = useState([]);
-  const [cities, setCities] = useState([]);
+  // const [countries, setCountries] = useState([]);
+  // const [states, setStates] = useState([]);
+  // const [cities, setCities] = useState([]);
 
-  // Loading states
-  const [isCountryLoading, setIsCountryLoading] = useState(false);
-  const [isStateLoading, setIsStateLoading] = useState(false);
-  const [isCityLoading, setIsCityLoading] = useState(false);
+  // // Loading states
+  // const [isCountryLoading, setIsCountryLoading] = useState(false);
+  // const [isStateLoading, setIsStateLoading] = useState(false);
+  // const [isCityLoading, setIsCityLoading] = useState(false);
 
-  // Authorization token for Universal Tutorial API
-  const authToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7InVzZXJfZW1haWwiOiJhZGl0eWFtaXNocmF3b3JraW5nLjc1QGdtYWlsLmNvbSIsImFwaV90b2tlbiI6IjBVMm5OaEljNlNDQkphVjhPSndtOHlzZ3o1TUp0RlFJVVk4cW9oSV83ZV9LT3Y1UlhyV3ZSQnJSN21lUGw0WGdHZncifSwiZXhwIjoxNzMyMTE5Nzg1fQ.fvF0lsFg8JoNkR8N4DJhuH_L1d6fXgE2tZoe1rfduzY";
+  // // Authorization token for Universal Tutorial API
+  // const authToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7InVzZXJfZW1haWwiOiJhZGl0eWFtaXNocmF3b3JraW5nLjc1QGdtYWlsLmNvbSIsImFwaV90b2tlbiI6IjBVMm5OaEljNlNDQkphVjhPSndtOHlzZ3o1TUp0RlFJVVk4cW9oSV83ZV9LT3Y1UlhyV3ZSQnJSN21lUGw0WGdHZncifSwiZXhwIjoxNzMyMTE5Nzg1fQ.fvF0lsFg8JoNkR8N4DJhuH_L1d6fXgE2tZoe1rfduzY";
   useEffect(() => {
     const loadProfile = async () => {
       const user = auth.currentUser;
@@ -73,8 +76,7 @@ export default function Form() {
             interests: data.interests || [],
             display_picture: data.display_picture || "",
           });
-          if (data.country) await fetchStates(data.country);
-          if (data.state) await fetchCities(data.state);
+        
         } else if (error) {
           setError("Failed to load profile data.");
         }
@@ -84,90 +86,57 @@ export default function Form() {
     loadProfile();
   }, []);
 
-  useEffect(() => {
-    // Fetch countries when the component mounts
-    const fetchCountries = async () => {
-      setIsCountryLoading(true);
-      try {
-        const response = await axios.get(
-          "https://www.universal-tutorial.com/api/countries/",
-          {
-            headers: {
-              Authorization: authToken,
-              Accept: "application/json",
-            },
+  const detectLocation = () => {
+    setIsDetectingLocation(true);
+    setLocationError(null);
+
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            // Use OpenCage Geocoding API to get detailed location information
+            const response = await axios.get(`https://api.opencagedata.com/geocode/v1/json?q=${position.coords.latitude}+${position.coords.longitude}&key=08e98005a9ca4ec3b99369f7b3245f7f`);
+            
+            if (response.data.results && response.data.results.length > 0) {
+              const locationComponents = response.data.results[0].components;
+              
+              setFormData(prevData => ({
+                ...prevData,
+                country: locationComponents.country || "",
+                state: locationComponents.state || locationComponents.province || "",
+                city: locationComponents.city || locationComponents.town || locationComponents.village || ""
+              }));
+            }
+          } catch (err) {
+            setLocationError("Failed to retrieve location details. Please try again.");
+            console.error("Geolocation error:", err);
+          } finally {
+            setIsDetectingLocation(false);
           }
-        );
-        setCountries(response.data);
-      } catch (error) {
-        console.error("Error fetching countries:", error);
-      } finally {
-        setIsCountryLoading(false);
-      }
-    };
-
-    fetchCountries();
-  }, []);
-
-  const fetchStates = async (country) => {
-    setIsStateLoading(true);
-    try {
-      const response = await axios.get(
-        `https://www.universal-tutorial.com/api/states/${country}`,
-        {
-          headers: {
-            Authorization: authToken,
-            Accept: "application/json",
-          },
+        },
+        (error) => {
+          setIsDetectingLocation(false);
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              setLocationError("Location detection denied. Please manually enter your location.");
+              break;
+            case error.POSITION_UNAVAILABLE:
+              setLocationError("Location information is unavailable.");
+              break;
+            case error.TIMEOUT:
+              setLocationError("Location request timed out.");
+              break;
+            default:
+              setLocationError("An unknown error occurred.");
+          }
         }
       );
-      setStates(response.data);
-    } catch (error) {
-      console.error("Error fetching states:", error);
-    } finally {
-      setIsStateLoading(false);
+    } else {
+      setLocationError("Geolocation is not supported by this browser.");
+      setIsDetectingLocation(false);
     }
   };
 
-  const fetchCities = async (state) => {
-    setIsCityLoading(true);
-    try {
-      const response = await axios.get(
-        `https://www.universal-tutorial.com/api/cities/${state}`,
-        {
-          headers: {
-            Authorization: authToken,
-            Accept: "application/json",
-          },
-        }
-      );
-      setCities(response.data);
-    } catch (error) {
-      console.error("Error fetching cities:", error);
-    } finally {
-      setIsCityLoading(false);
-    }
-  };
-
-  const handleCountryChange = (e) => {
-    const country = e.target.value;
-    setFormData((prevData) => ({ ...prevData, country, state: "", city: "" }));
-    setStates([]);
-    setCities([]);
-    if (country) fetchStates(country);
-  };
-
-  const handleStateChange = (e) => {
-    const state = e.target.value;
-    setFormData((prevData) => ({ ...prevData, state, city: "" }));
-    setCities([]);
-    if (state) fetchCities(state);
-  };
-
-  const handleCityChange = (e) => {
-    const city = e.target.value;
-    setFormData((prevData) => ({ ...prevData, city }));
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -320,7 +289,22 @@ export default function Form() {
             <p className="mt-2 text-gray-600">Tell us more about yourself</p>
           </div>
 
-         
+          <div className="md:col-span-2">
+            <div className="flex items-center space-x-4">
+              <button
+                type="button"
+                onClick={detectLocation}
+                disabled={isDetectingLocation}
+                className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-all duration-200"
+              >
+                <Navigation className="mr-2" size={20} />
+                {isDetectingLocation ? "Detecting..." : "Detect My Location"}
+              </button>
+              {locationError && (
+                <p className="text-sm text-red-600">{locationError}</p>
+              )}
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
@@ -394,65 +378,46 @@ export default function Form() {
               </div>
             </div>
         
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Country Field */}
             <div>
-            <label className="block text-sm font-medium text-gray-700">Country</label>
-            <select
-              name="country"
-              value={formData.country}
-              onChange={handleCountryChange}
-              className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg"
-              required
-            >
-              <option value="" disabled>Select Country</option>
-              {countries.map((country) => (
-                <option key={country.country_name} value={country.country_name}>
-                  {country.country_name}
-                </option>
-              ))}
-            </select>
-            {isCountryLoading && <p>Loading countries...</p>}
-          </div>
+              <label className="block text-sm font-medium text-gray-700">Country</label>
+              <input
+                type="text"
+                name="country"
+                value={formData.country}
+                onChange={handleChange}
+                className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg"
+                required
+              />
+            </div>
 
-          {/* State Field */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">State</label>
-            <select
-              name="state"
-              value={formData.state}
-              onChange={handleStateChange}
-              className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg"
-              required
-            >
-              <option value="" disabled>Select State</option>
-              {states.map((state) => (
-                <option key={state.state_name} value={state.state_name}>
-                  {state.state_name}
-                </option>
-              ))}
-            </select>
-            {isStateLoading && <p>Loading states...</p>}
-          </div>
+            {/* State Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">State</label>
+              <input
+                type="text"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg"
+                required
+              />
+            </div>
 
-          {/* City Field */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">City</label>
-            <select
-              name="city"
-              value={formData.city}
-              onChange={handleCityChange}
-              className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg"
-              required
-            >
-              <option value="" disabled>Select City</option>
-              {cities.map((city) => (
-                <option key={city.city_name} value={city.city_name}>
-                  {city.city_name}
-                </option>
-              ))}
-            </select>
-            {isCityLoading && <p>Loading cities...</p>}
+            {/* City Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">City</label>
+              <input
+                type="text"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                className="mt-1 block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg"
+                required
+              />
+            </div>
           </div>
-
           <div>
   <label className="block text-sm font-medium text-gray-700">Upload Display Picture</label>
   <input
