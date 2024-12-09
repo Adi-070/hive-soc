@@ -185,6 +185,26 @@ export default function UserProfile() {
                         profile={profile}
                         showProfileConfig={false}
                       />
+                        {/* Add/Unfriend Button */}
+                  <div className="flex justify-center">
+                    {isFriend ? (
+                      <button
+                        onClick={handleUnfriend}
+                        className="w-1/3 bg-red-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-600 transition"
+                      >
+                        Unfriend
+                      </button>
+                    ) : requestSent ? (
+                      <p className="text-blue-900 font-medium">Request sent</p>
+                    ) : (
+                      <button
+                        onClick={handleAddFriend}
+                        className="w-1/3 bg-blue-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-600 transition"
+                      >
+                        Add Friend
+                      </button>
+                    )}
+                  </div>
                       <ProfileInfo
                         profile={profile}
                         showProfileConfig={false}
@@ -205,11 +225,11 @@ export default function UserProfile() {
         </div>
           </div>
                   {/* Add/Unfriend Button */}
-                  <div className="mt-6">
+                  {/* <div className="mt-6 flex justify-center">
                     {isFriend ? (
                       <button
                         onClick={handleUnfriend}
-                        className="w-full bg-red-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-600 transition"
+                        className="w-1/2 bg-red-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-600 transition"
                       >
                         Unfriend
                       </button>
@@ -223,7 +243,7 @@ export default function UserProfile() {
                         Add Friend
                       </button>
                     )}
-                  </div>
+                  </div> */}
             </div>
   );
 }
