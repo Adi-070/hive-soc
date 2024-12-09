@@ -1,6 +1,6 @@
 import { Camera } from 'lucide-react';
 
-export const ProfileHeader = ({ profile, onEditProfile }) => (
+export const ProfileHeader = ({ profile, onEditProfile, showProfileConfig=true }) => (
   <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-6 mb-6">
     <div className="relative">
       {profile?.display_picture ? (
@@ -14,20 +14,25 @@ export const ProfileHeader = ({ profile, onEditProfile }) => (
           {profile?.firstName?.[0]}{profile?.lastName?.[0]}
         </div>
       )}
+      {showProfileConfig &&(
       <button 
         onClick={onEditProfile}
         className="absolute bottom-0 right-0 bg-white p-1 rounded-full shadow-md"
       >
         <Camera className="w-4 h-4 text-gray-600" />
       </button>
+      )}
     </div>
+    {showProfileConfig &&(
     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+    
       <button 
         onClick={onEditProfile} 
         className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm w-full sm:w-auto"
       >
         Upload New
       </button>
+    
       <button 
         onClick={onEditProfile} 
         className="px-3 py-1 border border-gray-300 text-gray-600 rounded-md text-sm w-full sm:w-auto"
@@ -35,5 +40,6 @@ export const ProfileHeader = ({ profile, onEditProfile }) => (
         Delete Avatar
       </button>
     </div>
+    )}
   </div>
 );

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 
-export const Header = ({ onLogout }) => {
+export const Header = ({ showLogOut = true,onLogout }) => {
   return (
     <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
       <div className="max-w-5xl mx-auto px-4 h-16 flex justify-between items-center">
@@ -10,6 +10,7 @@ export const Header = ({ onLogout }) => {
             Home
           </h1>
         </Link>
+        {showLogOut &&(
         <button
           onClick={onLogout}
           className="flex items-center gap-2 text-gray-600 hover:text-red-500 transition-colors duration-200"
@@ -17,6 +18,7 @@ export const Header = ({ onLogout }) => {
           <LogOut size={18} />
           <span className="text-sm font-medium">Logout</span>
         </button>
+        )}
       </div>
     </header>
   );

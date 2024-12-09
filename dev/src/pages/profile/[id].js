@@ -3,13 +3,18 @@ import { useRouter } from "next/router";
 import { auth } from "../../../lib/firebaseConfig";
 import { supabase } from "../../../lib/supabaseClient";
 import Link from "next/link";
-import { MapPin, Heart, User2, Calendar, ArrowLeft, KeyRound, Bell, ShieldCheck } from 'lucide-react';
+import { ArrowLeft,Camera, MapPin, Link as LinkIcon, Calendar, Edit2, LogOut, Grid, User2, Mail, Phone, Heart, Bell, Users, KeyRound, ShieldCheck } from 'lucide-react'
 import { onAuthStateChanged } from "firebase/auth";
 import { ErrorMessage } from "@/components/dashboard/ErrorMessage";
 import { LoadingSpinner } from "@/components/dashboard/LoadingSpinner";
-import ProfileData from "@/components/dashboard/ProfileData";
-
-
+import { ProfileData } from "@/components/dashboard/ProfileData";
+import { ProfileHeader } from "@/components/dashboard/ProfileHeader";
+import { ProfileInfo } from "@/components/dashboard/ProfileInfo";
+import PostSection from "@/components/posts/PostSection"
+import { FriendsList } from "@/components/friends/FriendsList";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Header } from "@/components/dashboard/Header";
 
 export default function UserProfile() {
   const [profile, setProfile] = useState(null);
@@ -54,6 +59,7 @@ export default function UserProfile() {
     } finally {
       setLoading(false);
     }
+    console.log(id)
   };
 
   const checkFriendStatus = async (userId) => {
@@ -135,122 +141,69 @@ export default function UserProfile() {
   if (error) return <ErrorMessage message={error} />;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-black">
-      <header className="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex justify-between items-center">
-          <Link href="/home" passHref>
-            <div className="flex items-center gap-2 text-gray-600 hover:text-blue-500 cursor-pointer">
-              <ArrowLeft size={18} />
-              <span>Back to Search</span>
-            </div>
-          </Link>
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center px-4 sm:px-6">
+          <Header showLogOut={false}/>
         </div>
       </header>
 
-      <div className="pt-24 pb-12 px-4">
-        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-8">
-          {/* Sidebar */}
-          <aside className="w-full lg:w-64 shrink-0">
-            <nav className="space-y-1">
-              <Link href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-md bg-blue-50 text-blue-700">
-                <User2 className="mr-3 h-4 w-4" />
-                <span>Friend&apos;s Profile</span>
-              </Link>
-            </nav>
-          </aside>
-
           {/* Main Profile Section */}
-          <main className="flex-1">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+          <div className="container pt-8 sm:pt-16 px-4 sm:px-6">
+        <div className="flex">
+          <Tabs defaultValue="profile" className="w-full">
+            <div className="flex flex-col md:flex-row md:pl-8">
+              {/* Mobile Tab List */}
+              <TabsList className="flex md:hidden h-auto w-full space-x-2 rounded-lg bg-background p-2 mb-4 overflow-x-auto">
+                <TabsTrigger value="profile" className="flex-1 min-w-[80px]">
+                  <User2 className="h-4 w-4 md:mr-2" />
+                  <span className="hidden sm:inline">Profile</span>
+                </TabsTrigger>
+                <TabsTrigger value="posts" className="flex-1 min-w-[80px]">
+                  <Grid className="h-4 w-4 md:mr-2" />
+                  <span className="hidden sm:inline">Posts</span>
+                </TabsTrigger>
+              </TabsList>
 
-              <div className="px-6 pb-6">
-                <div className="relative -mt-16 mb-4">
-                  <div className="w-32 h-32 rounded-full border-4 border-white overflow-hidden bg-white shadow-lg">
-                    <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
-                      {profile?.display_picture ? (
-                        <img
-                          src={profile.display_picture}
-                          alt={`${profile.firstName} ${profile.lastName}`}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
-                          {profile?.firstName?.[0]}{profile?.lastName?.[0]}
-                        </div>
-                      )}
+              {/* Desktop Tab List */}
+              <TabsList className="hidden md:flex flex-col h-full w-64 space-y-2 rounded-lg bg-background p-2">
+                <TabsTrigger value="profile" className="justify-start w-full">
+                  <User2 className="mr-2 h-4 w-4" />
+                  Profile
+                </TabsTrigger>
+                <TabsTrigger value="posts" className="justify-start w-full">
+                  <Grid className="mr-2 h-4 w-4" />
+                  Posts
+                </TabsTrigger>
+              </TabsList>
+          
+              <div className="flex-grow md:pl-8 w-full">
+                <TabsContent value="profile">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="px-4 sm:px-6 py-4">
+                      <ProfileHeader
+                        profile={profile}
+                        showProfileConfig={false}
+                      />
+                      <ProfileInfo
+                        profile={profile}
+                        showProfileConfig={false}
+                      />
+                      <ProfileData profile={profile} formatValue={formatValue} />
                     </div>
                   </div>
-                </div>
+                </TabsContent>
 
-                <div className="flex flex-col gap-6">
-                  <h2 className="text-2xl font-bold text-gray-900">{profile?.userName}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Profile Details */}
-
-                    
-                    
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <Calendar className="text-blue-500" size={20} />
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">First Name</p>
-                          <p className="text-gray-900 font-medium">{profile?.firstName || "Not specified"}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <MapPin className="text-blue-500" size={20} />
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Gender</p>
-                          <p className="text-gray-900 font-medium">{profile?.gender || "Not specified"}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <MapPin className="text-blue-500" size={20} />
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">City</p>
-                          <p className="text-gray-900 font-medium">{profile?.city || "Not specified"}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <MapPin className="text-blue-500" size={20} />
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">State</p>
-                          <p className="text-gray-900 font-medium">{profile?.state || "Not specified"}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <MapPin className="text-blue-500" size={20} />
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Country</p>
-                          <p className="text-gray-900 font-medium">{profile?.country || "Not specified"}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <MapPin className="text-blue-500" size={20} />
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Interests</p>
-                          <p className="text-gray-900 font-medium">{formatValue(profile?.interests)}</p>
-                        </div>
-                      </div>
-                    </div>
+                <TabsContent value="posts">
+                  <div className="max-w-2xl mx-auto">
+                    <PostSection userId={id} />
                   </div>
-
+                </TabsContent>
+              </div>
+            </div>
+          </Tabs>
+        </div>
+          </div>
                   {/* Add/Unfriend Button */}
                   <div className="mt-6">
                     {isFriend ? (
@@ -271,12 +224,6 @@ export default function UserProfile() {
                       </button>
                     )}
                   </div>
-                </div>
-              </div>
             </div>
-          </main>
-        </div>
-      </div>
-    </div>
   );
 }
